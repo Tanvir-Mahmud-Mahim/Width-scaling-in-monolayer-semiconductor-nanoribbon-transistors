@@ -20,5 +20,8 @@ for doc in main supplementary; do
     pdflatex -interaction=nonstopmode $doc > /dev/null 2>&1 || true
   done
   echo -n "$doc: "; pdfinfo $doc.pdf | grep -i '^Pages'
-  echo "  overfull boxes: $(grep -c 'Overfull' $doc.log || true)" 
+  echo "  overfull boxes: $(grep -c 'Overfull' $doc.log || true)"
 done
+cd ..
+echo "== archives =="
+python3 make_archive.py

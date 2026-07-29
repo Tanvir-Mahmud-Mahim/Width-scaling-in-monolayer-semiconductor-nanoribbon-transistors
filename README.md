@@ -71,6 +71,7 @@ rapid/          the analysis package
   figures.py      main-text figures
   device_fig.py   the three-dimensional device schematic
   supplement.py   supplementary figures and tables
+  device.py       self-consistent Poisson and drift-diffusion device solve
   numbers.py      exports every quoted number as a LaTeX macro
 
 benchmarks/     published measurements as flat CSV, one file per source
@@ -87,9 +88,12 @@ results.json    every computed quantity quoted in the article
 Nothing has to be re-run: the first-principles output is stored in `dft/`.
 
 ```bash
-pip install numpy scipy matplotlib
+pip install numpy scipy matplotlib devsim
 bash finalize.sh
 ```
+
+`devsim` needs a BLAS/LAPACK library; on Debian or Ubuntu
+`apt install libopenblas-dev liblapack-dev` is enough.
 
 `finalize.sh` reduces the stored density functional theory output, runs every
 numerical experiment, regenerates all eight figures and three tables, exports
@@ -152,7 +156,19 @@ finite difference of the full objective.
 **Transport.** Phonon, neutral point-defect and screened interface-charge
 scattering combined by Matthiessen's rule, plus diffuse edge scattering and a
 damage halo treated as two parallel conductors, closed with the measured
-monolayer MoS₂ saturation velocity. Exactly two constants are calibrated
+monolayer MoS₂ saturation velocity. Every current that the article compares
+with measurement comes from a self-consistent solve of the channel: the surface
+band bending and the electron quasi-Fermi potential are carried as coupled
+fields, so the quantum capacitance, the fall of the channel charge towards the
+drain and the feedback of a series contact resistance all enter without
+approximation. The coupled system is solved by Newton's method in
+[DEVSIM](https://devsim.org), and four checks run with the code: the band
+bending against an independent bisection solve of the gate balance, the
+residual of the gate balance itself, source-to-drain current continuity, and
+the long-channel square law once the quantum capacitance is placed in series
+with the oxide. The compact expression is retained only to sweep the design map and
+the critical-width scans; it is high by a nearly constant factor 1.56, and the
+critical width, being a ratio, differs between the two models by 7 %. Exactly two constants are calibrated
 rather than computed or measured, both once and then held fixed: the neutral
 point-defect potential and the interface trap density of each gate stack.
 `rapid/materials.py` carries a provenance tag on every entry, reproduced as
