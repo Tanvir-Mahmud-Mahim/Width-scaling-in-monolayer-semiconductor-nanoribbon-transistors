@@ -111,8 +111,8 @@ def fig_abstract(res):
     # ---------------- (a) device schematic -----------------------------
     ax = fig.add_subplot(gtop[0, 0])
     anchors = device_fig.draw_device(ax, fs=6.3)
-    device_fig.draw_cross_section(ax, rect=(0.008, 0.008, 0.370, 0.350),
-                                  fs=5.4)
+    device_fig.draw_cross_section(ax, rect=(0.012, 0.012, 0.404, 0.372),
+                                  fs=5.2)
     device_fig.annotate(ax, anchors, fs=6.3)
     t = ax.text(0.0, 1.0, '(a)', transform=ax.transAxes, fontweight='bold',
                 fontsize=FS_TAG, va='bottom', ha='left', color=INK)

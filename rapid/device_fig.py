@@ -17,10 +17,10 @@ hand buys three things that matter for a publication figure:
 What the drawing asserts about the device is meant to be right, not merely
 suggestive:
 
-  * the monolayer is one ribbon of constant width running the whole length of
-    the device and passing under both contacts.  The etch that defines it
-    leaves a damaged strip beside each edge along that whole length, so the
-    halo is drawn along the full ribbon and not only in the exposed channel.
+  * the monolayer is one ribbon of constant width running from one contact to
+    the other and passing under both of them.  The etch that defines it leaves
+    a damaged strip beside each edge along that whole length, so the halo is
+    drawn along the full ribbon and not only in the exposed channel.
   * the stack is gate / gate dielectric / monolayer, with a gate terminal, so
     the object is a transistor and not a resistor on a wafer.  The same
     picture covers a doped-silicon back gate and a local metal gate; only the
@@ -149,15 +149,16 @@ class Scene:
 # the device
 # ---------------------------------------------------------------------------
 # geometry, in arbitrary drawing units
-L, D = 11.0, 5.6                 # substrate footprint
+L, D = 10.85, 4.70               # substrate footprint
 T_SI, T_GM, T_OX = 0.80, 0.26, 0.55   # gate body, gate metal, dielectric
-WR = 1.70                        # ribbon width
-HALO = 0.30                      # damaged strip beside each edge
-PAD_W, PAD_H = 2.30, 0.46        # contact footprint along x, and height
-PAD_X0, PAD_X1 = 0.80, 7.45      # near and far contact, leading edges
+WR = 1.98                        # ribbon width
+HALO = 0.32                      # damaged strip beside each edge
+EDGE_RMS = 0.055                 # etched-edge roughness, 3 nm scaled
+PAD_W, PAD_H = 1.85, 0.46        # contact footprint along x, and height
+PAD_X0, PAD_X1 = 0.62, 7.55      # near and far contact, leading edges
 XS, XE = PAD_X0 + PAD_W, PAD_X1  # exposed channel between the contacts
-RIB_X0, RIB_X1 = 0.65, 9.90      # the ribbon overhangs both contacts
-TIPX = 4.55                      # position of the Raman tip along the ribbon
+RIB_X0, RIB_X1 = 0.60, 9.42      # the ribbon ends under the two contacts
+TIPX = 5.75                      # position of the Raman tip along the ribbon
 
 Y0 = (D - WR) / 2.0
 Z_GM = -T_OX - T_GM
@@ -217,6 +218,25 @@ def _frustum(sc, base, axis, r0, r1, height, colour, n=22, boost=0.0,
                edge=(0, 0, 0, 0), layer=layer)
 
 
+def _rough_edge(y, n=140, seed=11):
+    """Etched boundary with the measured roughness, as a jittered polyline.
+
+    Pena et al. report about 3 nm of line-edge roughness on these ribbons, so
+    the outer boundary of each damaged strip is drawn with that amplitude
+    rather than as a straight line.  The generator is seeded, so the figure is
+    reproducible.
+    """
+    rng = np.random.default_rng(seed)
+    x = np.linspace(RIB_X0, RIB_X1, n)
+    # a smooth random walk: white noise low-pass filtered by a short kernel
+    w = rng.standard_normal(n)
+    k = np.exp(-0.5 * (np.arange(-6, 7) / 2.4) ** 2)
+    k /= k.sum()
+    w = np.convolve(w, k, mode='same')
+    w /= (np.std(w) + 1e-12)
+    return x, y + EDGE_RMS * w
+
+
 def build_scene():
     sc = Scene()
 
@@ -226,22 +246,42 @@ def build_scene():
     sc.box(0, 0, Z_OX, L, D, T_OX, C_OX, lw=0.35, layer=0)
 
     # --- layer 1: the patterned monolayer ------------------------------
-    # One ribbon of constant width over the whole length of the device: the
-    # etch defines it everywhere, so the damaged strip beside each edge runs
-    # the whole length too and is not confined to the exposed channel.
-    dx = RIB_X1 - RIB_X0
-    sc.box(RIB_X0, Y0, Z_CH, dx, HALO, T_MONO, C_HALO, lw=0.25, boost=0.06,
-           layer=1)
-    sc.box(RIB_X0, Y0 + WR - HALO, Z_CH, dx, HALO, T_MONO, C_HALO, lw=0.25,
-           boost=0.06, layer=1)
-    sc.box(RIB_X0, Y0 + HALO, Z_CH, dx, WR - 2 * HALO, T_MONO, C_CH, lw=0.25,
-           layer=1)
+    # One ribbon of constant nominal width over the whole length of the
+    # device: the etch defines it everywhere, so the damaged strip beside each
+    # edge runs the whole length and is not confined to the exposed channel.
+    # The two outer boundaries carry the reported line-edge roughness.
+    zt = Z_CH + T_MONO
+    xn, yn = _rough_edge(Y0, seed=11)                 # near etched boundary
+    xf, yf = _rough_edge(Y0 + WR, seed=29)            # far etched boundary
+
+    # damaged strip beside the near edge: top face, then its sidewall
+    top_n = [(xn[i], yn[i], zt) for i in range(len(xn))] + \
+            [(xn[i], Y0 + HALO, zt) for i in range(len(xn) - 1, -1, -1)]
+    sc.add(top_n, C_HALO, normal=(0, 0, 1), lw=0.0, boost=0.06, layer=1,
+           edge=(0, 0, 0, 0))
+    wall = [(xn[i], yn[i], zt) for i in range(len(xn))] + \
+           [(xn[i], yn[i], Z_CH) for i in range(len(xn) - 1, -1, -1)]
+    sc.add(wall, C_HALO, normal=(0, -1, 0), lw=0.0, boost=-0.10, layer=1,
+           edge=(0, 0, 0, 0))
+
+    # damaged strip beside the far edge: only its top face can be seen
+    top_f = [(xf[i], yf[i], zt) for i in range(len(xf))] + \
+            [(xf[i], Y0 + WR - HALO, zt) for i in range(len(xf) - 1, -1, -1)]
+    sc.add(top_f, C_HALO, normal=(0, 0, 1), lw=0.0, boost=0.06, layer=1,
+           edge=(0, 0, 0, 0))
+
+    # the undamaged interior
+    sc.box(RIB_X0, Y0 + HALO, Z_CH, RIB_X1 - RIB_X0, WR - 2 * HALO, T_MONO,
+           C_CH, lw=0.22, layer=1)
 
     # --- layer 2: source and drain metal -------------------------------
     # The pads land on the ribbon and overhang it slightly, as a patterned
     # metal on a narrower ribbon does.
+    # The metal starts on the dielectric beside the ribbon and climbs over it,
+    # so it is drawn from the dielectric surface rather than from the top of
+    # the monolayer: that is what buries the ribbon sidewall under the contact.
     for x0 in (PAD_X0, PAD_X1):
-        sc.box(x0, Y0 - 0.42, Z_CH + T_MONO, PAD_W, WR + 0.84, PAD_H, C_MET,
+        sc.box(x0, Y0 - 0.42, Z_CH, PAD_W, WR + 0.84, PAD_H + T_MONO, C_MET,
                lw=0.32, layer=2)
 
     return sc
@@ -310,7 +350,7 @@ def _edge_charges(ax):
     top surface, and each is given a minus sign, so the picture says the charge
     is trapped at the cut edge.
     """
-    xs = np.linspace(XS + 0.34, XE - 0.34, 5)
+    xs = np.linspace(XS + 0.55, XE - 0.80, 5)
     pts, faces = [], []
     for x in xs:
         pts.append((x, Y0 - 0.006, Z_CH + 0.55 * T_MONO))          # near edge
@@ -372,21 +412,21 @@ def _raman_tip(ax):
 
     # excitation cone: a real cone about the tip axis, painted translucent
     cone = Scene()
-    _cone(cone, apex, (0, 0, 1), 0.46, 2.30, GREEN, n=34, alpha=0.16)
+    _cone(cone, apex, (0, 0, 1), 0.62, 1.72, GREEN, n=34, alpha=0.20)
     for f in sorted(cone.faces, key=lambda f: -f[1]):
         ax.add_patch(Polygon(project(f[2]), closed=True, facecolor=f[3],
-                             edgecolor='none', alpha=0.16, zorder=5))
+                             edgecolor='none', alpha=0.20, zorder=5))
     for sgn in (-1, 1):
-        seg = project(np.array([[TIPX + sgn * 0.46, ty, Z_CH + 2.35],
+        seg = project(np.array([[TIPX + sgn * 0.62, ty, Z_CH + 1.77],
                                 apex + np.array([0.0, 0.0, 0.04])]))
         ax.plot(seg[:, 0], seg[:, 1], color=GREEN, lw=0.8,
                 solid_capstyle='round', zorder=6)
 
     # the probe: a tapered shaft ending in a sharp apex on the ribbon edge
     tip = Scene()
-    _frustum(tip, (TIPX, ty, 1.30), (0, 0, 1), 0.14, 0.25, 1.15, '#8d949b',
+    _frustum(tip, (TIPX, ty, 0.92), (0, 0, 1), 0.09, 0.15, 0.86, '#767d84',
              boost=0.08)
-    _cone(tip, apex, (0, 0, 1), 0.14, 1.14, '#a7aeb5', boost=0.12)
+    _cone(tip, apex, (0, 0, 1), 0.09, 0.86, '#98a0a7', boost=0.12)
     for f in sorted(tip.faces, key=lambda f: -f[1]):
         ax.add_patch(Polygon(project(f[2]), closed=True, facecolor=f[3],
                              edgecolor='none', zorder=7))
@@ -397,32 +437,37 @@ def _raman_tip(ax):
                         alpha=0.32, zorder=7))
     ax.add_patch(Circle(P, 0.048, facecolor='#fbfbfb', edgecolor='#6b7076',
                         linewidth=0.35, zorder=8))
-    q0 = apex + np.array([-0.34, -0.30, 0.42])
-    q1 = apex + np.array([-1.55, -1.05, 1.95])
+    q0 = apex + np.array([-0.12, -0.14, 0.16])
+    q1 = apex + np.array([-1.95, -1.16, 1.34])
     a, b = project(np.array([q0, q1]))
     ax.add_patch(FancyArrowPatch(a, b, arrowstyle='-|>', mutation_scale=4.6,
                                  lw=0.7, color=VERM, shrinkA=0, shrinkB=0,
                                  zorder=11))
-    return apex, project(np.array([[TIPX - 0.46, ty, Z_CH + 2.26]]))[0], b
+    return apex, project(np.array([[TIPX - 0.80, ty, Z_CH + 1.74]]))[0], b
 
 
 def _dimensions(ax, fs=6.8):
-    """Width across the ribbon and channel length between the contacts."""
+    """Ribbon width, marked on the ribbon itself.
+
+    The marker lies flat on the monolayer beyond the far contact, where the
+    ribbon runs on alone.  Putting it there rather than in the exposed channel
+    keeps it clear of the probe, of the excitation cone and of the section line,
+    all of which crowd the channel in this projection, and it costs nothing in
+    accuracy because the ribbon has one width along its whole length.
+    """
     out = {}
-    # W, lifted just above the ribbon
-    x = XS + 0.62
-    z1 = Z_CH + 0.50
-    for y in (Y0, Y0 + WR):
-        seg = project(np.array([[x, y, Z_CH + T_MONO], [x, y, z1]]))
-        ax.plot(seg[:, 0], seg[:, 1], color=INK2, lw=0.40, zorder=9)
-    a = project(np.array([[x, Y0, z1]]))[0]
-    b = project(np.array([[x, Y0 + WR, z1]]))[0]
-    ax.add_patch(FancyArrowPatch(a, b, arrowstyle='<|-|>', mutation_scale=4.0,
+    x = 0.5 * (PAD_X1 + PAD_W + RIB_X1)
+    zt = Z_CH + T_MONO + 0.004
+    a = project(np.array([[x, Y0, zt]]))[0]
+    b = project(np.array([[x, Y0 + WR, zt]]))[0]
+    ax.add_patch(FancyArrowPatch(a, b, arrowstyle='<|-|>', mutation_scale=3.8,
                                  lw=0.55, color=INK, shrinkA=0, shrinkB=0,
                                  zorder=10))
-    lab = project(np.array([[x, Y0 + WR + 0.46, z1 + 0.20]]))[0]
+    lab = project(np.array([[x + 0.10, Y0 - 0.62, Z_CH]]))[0]
     ax.text(lab[0], lab[1], '$W$', fontsize=fs, color=INK, ha='center',
-            va='bottom', zorder=10)
+            va='center', zorder=10)
+    ax.plot([lab[0], a[0]], [lab[1] + 0.055, a[1] - 0.020], color=INK2,
+            lw=0.35, zorder=10)
     out['width'] = 0.5 * (a + b)
     return out
 
@@ -430,95 +475,162 @@ def _dimensions(ax, fs=6.8):
 # ---------------------------------------------------------------------------
 # inset: the cross-section that projection cannot show
 # ---------------------------------------------------------------------------
-def draw_cross_section(ax, rect=(0.000, 0.010, 0.335, 0.375), fs=5.4):
-    """True cross-section through the ribbon, looking along the channel.
+def draw_cross_section(ax, rect=(0.012, 0.012, 0.404, 0.372), fs=5.2):
+    """Section A--A: the band edge above, the geometry below.
 
-    This is where the detail lives: the halo strip beside each edge, the fixed
-    charge on the two sidewalls and the band bending it produces, and the
-    layers of the gate stack in their real order.  Nothing here is in
-    perspective, so widths and thicknesses can be read off directly.
+    This is where the detail that projection cannot show lives.  The two
+    sub-panels share the horizontal axis, position across the ribbon, so the
+    band edge can be read against the feature that produces it: fixed charge on
+    the two etched sidewalls raises the conduction-band edge over the screening
+    length beside each edge, and the width average of that rise is the
+    threshold shift of Eq. (1).  Nothing is in perspective, so the ordering and
+    the connectivity of the stack can be read off directly; the thicknesses are
+    not to scale and the band edge is a sketch of the shape only, since the
+    quantity it averages to is Eq. (1).
+
+    Layout rule for this panel: every mark and every label is placed between
+    XL and XR and between the two vertical limits, so nothing can escape the
+    white frame that carries the panel.  The right-hand strip from XTAG to XR
+    is reserved for the layer names and holds nothing else.
     """
-    cax = ax.inset_axes(rect)
-    cax.set_xlim(-1.18, 1.14)
-    cax.set_ylim(-0.86, 1.16)
-    cax.set_axis_off()
-    cax.set_facecolor('none')
+    x0, y0, w0, h0 = rect
+    pad = 0.011
+    ax.add_patch(Rectangle((x0 - pad, y0 - pad), w0 + 2 * pad, h0 + 2 * pad,
+                           transform=ax.transAxes, facecolor='white',
+                           edgecolor='#c2c8ce', linewidth=0.45, zorder=14,
+                           clip_on=False))
+    hb = 0.315 * h0
+    bax = ax.inset_axes([x0, y0 + h0 - hb, w0, hb], zorder=15)
+    cax = ax.inset_axes([x0, y0, w0, h0 - hb], zorder=15)
+    XL, XR = -0.42, 2.16
+    SX0, SX1 = -0.30, 1.04                   # the drawn stack spans this range
+    XTAG = SX1 + 0.06                        # left edge of the label strip
+    for a in (bax, cax):
+        a.set_xlim(XL, XR)
+        a.set_axis_off()
+        a.set_facecolor('none')
 
     w = 1.0
-    h_ox, h_gm = 0.30, 0.13
-    y_ch = 0.0
-    t = 0.085
-    wh = 0.16                                     # halo width, in units of W
+    wh = 0.15                                 # halo width, in units of W
+    ld = 0.070                                # screening length, same units
 
-    # gate stack
-    cax.add_patch(Rectangle((-0.10, y_ch - h_ox - h_gm - 0.16), w + 0.20,
-                            0.16, facecolor=C_SI, edgecolor='#6e767e',
-                            lw=0.30))
-    cax.add_patch(Rectangle((-0.10, y_ch - h_ox - h_gm), w + 0.20, h_gm,
-                            facecolor=C_GM, edgecolor='#4e565f', lw=0.30))
-    cax.add_patch(Rectangle((-0.10, y_ch - h_ox), w + 0.20, h_ox,
-                            facecolor=C_OX, edgecolor='#8fb2ce', lw=0.30))
-    # the monolayer, with a damaged strip beside each edge
-    cax.add_patch(Rectangle((0.0, y_ch), wh, t, facecolor=C_HALO,
-                            edgecolor='#b57433', lw=0.30))
-    cax.add_patch(Rectangle((w - wh, y_ch), wh, t, facecolor=C_HALO,
-                            edgecolor='#b57433', lw=0.30))
-    cax.add_patch(Rectangle((wh, y_ch), w - 2 * wh, t, facecolor=C_CH,
-                            edgecolor='#2b6a92', lw=0.30))
+    # ---- band edge across the ribbon -----------------------------------
+    # Only over 0 to W: outside the ribbon the monolayer has been etched away,
+    # so there is no band edge to draw there.
+    yb = np.linspace(0.0, w, 500)
+    Ec = np.exp(-yb / ld) + np.exp(-(w - yb) / ld)
+    Eav = float(Ec.mean())
+    bax.set_ylim(-0.34, 1.34)
+    # the two damaged strips, shaded so the two panels can be read together
+    for xa in (0.0, w - wh):
+        bax.add_patch(Rectangle((xa, -0.04), wh, 1.38, facecolor='#f7e5d1',
+                                edgecolor='none', zorder=1))
+    bax.plot([0.22, 0.38], [0.0, 0.0], color=INK, lw=0.42, zorder=2)
+    bax.plot(yb, Ec, color=VERM, lw=1.00, solid_capstyle='round', zorder=4)
+    bax.plot([0.055, w - 0.055], [Eav, Eav], color=INK, lw=0.45,
+             ls=(0, (2.4, 1.5)), zorder=3)
+    bax.annotate('', xy=(0.30, Eav), xytext=(0.30, 0.0),
+                 arrowprops=dict(arrowstyle='<|-|>', lw=0.42, color=INK,
+                                 mutation_scale=2.2, shrinkA=0, shrinkB=0),
+                 zorder=5)
+    # the label goes into the clear space above the average, with a leader, so
+    # it cannot sit on top of the dashed line it belongs to
+    bax.annotate(r'$\Delta V_{\rm T}$', xy=(0.315, 0.5 * Eav),
+                 xytext=(0.44, 0.62), fontsize=fs, color=INK, ha='left',
+                 va='center', zorder=6,
+                 arrowprops=dict(arrowstyle='-', lw=0.35, color=INK,
+                                 shrinkA=1.0, shrinkB=1.0))
+    bax.text(XTAG, 1.02, r'$E_{\rm c}(y)$', fontsize=fs, color=VERM,
+             ha='left', va='center')
+    bax.plot([w + 0.02, XTAG - 0.04], [Ec[-1] * 0.88, 1.02], color=VERM,
+             lw=0.35, zorder=3)
 
-    # fixed charge on the two sidewalls
+    # ---- geometry ------------------------------------------------------
+    # Two slabs under the monolayer: the gate dielectric and the gate itself.
+    # A doped-silicon back gate and a patterned metal gate differ only in the
+    # dielectric thickness, so one sketch covers both.
+    h_ox, h_g = 0.50, 0.44
+    y_ch, t = 0.0, 0.152
+    cax.set_ylim(-1.36, 0.98)
+    for zz, hh, fc, ec, tag, col in (
+            (y_ch - h_ox, h_ox, C_OX, '#8fb2ce', 'gate oxide', '#2f6f9e'),
+            (y_ch - h_ox - h_g, h_g, C_GM, '#4e565f', 'gate', '#3f4750')):
+        cax.add_patch(Rectangle((SX0, zz), SX1 - SX0, hh, facecolor=fc,
+                                edgecolor=ec, lw=0.32))
+        cax.text(XTAG, zz + 0.5 * hh, tag, fontsize=fs, color=col,
+                 ha='left', va='center')
+
+    # the monolayer as an S-Mo-S sandwich: three atomic planes, which is what
+    # makes the A1' mode a chalcogen coordinate
+    for xa, xb, fc, ec in ((0.0, wh, C_HALO, '#b57433'),
+                           (wh, w - wh, C_CH, '#2b6a92'),
+                           (w - wh, w, C_HALO, '#b57433')):
+        cax.add_patch(Rectangle((xa, y_ch), xb - xa, t, facecolor=fc,
+                                edgecolor=ec, lw=0.32, zorder=4))
+    cax.text(XTAG, y_ch + 0.5 * t, 'monolayer', fontsize=fs,
+             color='#1f6ea8', ha='left', va='center')
+    cax.plot([w + 0.01, XTAG - 0.04], [y_ch + 0.5 * t, y_ch + 0.5 * t],
+             color='#1f6ea8', lw=0.35, zorder=3)
+    xs = np.linspace(0.036, w - 0.036, 11)
+    for xa in xs:
+        cax.plot([xa], [y_ch + 0.5 * t], marker='o', ms=1.8, mfc='#0b3a57',
+                 mec='none', zorder=6)                      # metal plane
+        for zz in (y_ch + 0.90 * t, y_ch + 0.10 * t):
+            cax.plot([xa], [zz], marker='o', ms=1.2, mfc='#f7d3a0',
+                     mec='none', zorder=6)                  # chalcogen planes
+
+    # the A1' coordinate: the two chalcogen planes breathing apart
+    xa = xs[5]
+    for zz, dz in ((y_ch + 0.90 * t, 0.15), (y_ch + 0.10 * t, -0.15)):
+        cax.annotate('', xy=(xa, zz + dz), xytext=(xa, zz),
+                     arrowprops=dict(arrowstyle='-|>', lw=0.45, color=INK,
+                                     mutation_scale=2.4, shrinkA=0, shrinkB=0),
+                     zorder=7)
+    cax.text(xa + 0.055, y_ch + t + 0.04, r"$A_1'$", fontsize=fs,
+             color=INK, ha='left', va='bottom', zorder=9)
+
+    # fixed charge on the two etched sidewalls.  Point markers, not data-space
+    # circles, so the discs stay round whatever the panel aspect ratio is.
     for x in (0.0, w):
-        for dz in (0.30, 0.70):
-            cax.add_patch(Circle((x, y_ch + dz * t), 0.036, facecolor=VERM,
-                                 edgecolor='white', lw=0.25, zorder=6))
-    # the depletion each edge produces, sketched as a shaded wedge
-    for x, sgn in ((0.0, +1), (w, -1)):
-        cax.add_patch(Polygon([[x, y_ch + t], [x + sgn * 0.30, y_ch + t],
-                               [x, y_ch + t + 0.20]], closed=True,
-                              facecolor=VERM, edgecolor='none', alpha=0.16,
-                              zorder=5))
+        for dz in (0.24, 0.76):
+            cax.plot([x], [y_ch + dz * t], marker='o', ms=1.9, mfc=VERM,
+                     mec='white', mew=0.25, zorder=8)
+    cax.annotate(r'$\sigma_{\rm e}$', xy=(0.0, y_ch + 0.72 * t),
+                 xytext=(-0.30, y_ch + 0.40), fontsize=fs, color=VERM,
+                 ha='left', va='bottom', zorder=9,
+                 arrowprops=dict(arrowstyle='-', lw=0.35, color=VERM,
+                                 shrinkA=1.5, shrinkB=1.5))
 
-    # dielectric thickness, marked where it can be read
-    cax.annotate('', xy=(0.86, y_ch), xytext=(0.86, y_ch - h_ox),
-                 arrowprops=dict(arrowstyle='<|-|>', lw=0.42, color='#2f6f9e',
-                                 mutation_scale=2.8, shrinkA=0, shrinkB=0))
-    cax.text(0.90, y_ch - 0.5 * h_ox, r'$t_{\rm ox}$', fontsize=fs,
+    # dimensions
+    cax.annotate('', xy=(SX0 + 0.07, y_ch), xytext=(SX0 + 0.07, y_ch - h_ox),
+                 arrowprops=dict(arrowstyle='<|-|>', lw=0.40, color='#2f6f9e',
+                                 mutation_scale=2.4, shrinkA=0, shrinkB=0))
+    cax.text(SX0 + 0.11, y_ch - 0.5 * h_ox, r'$t_{\rm ox}$', fontsize=fs,
              color='#2f6f9e', ha='left', va='center')
-
-    # width dimension, and the halo width
     yv = y_ch + t + 0.40
     cax.annotate('', xy=(0.0, yv), xytext=(w, yv),
-                 arrowprops=dict(arrowstyle='<|-|>', lw=0.5, color=INK,
-                                 mutation_scale=3.6, shrinkA=0, shrinkB=0))
+                 arrowprops=dict(arrowstyle='<|-|>', lw=0.45, color=INK,
+                                 mutation_scale=3.0, shrinkA=0, shrinkB=0))
     cax.text(0.5 * w, yv + 0.03, '$W$', fontsize=fs, color=INK, ha='center',
              va='bottom')
     for x in (0.0, w):
-        cax.plot([x, x], [y_ch + t, yv], color=INK2, lw=0.30, ls=':')
-    cax.annotate('', xy=(wh, y_ch + t + 0.22), xytext=(0.0, y_ch + t + 0.22),
-                 arrowprops=dict(arrowstyle='<|-|>', lw=0.45, color='#a8631a',
-                                 mutation_scale=3.0, shrinkA=0, shrinkB=0))
-    cax.text(wh + 0.035, y_ch + t + 0.22, r'$w_{\rm h}$', fontsize=fs,
+        cax.plot([x, x], [y_ch + t + 0.05, yv], color=INK2, lw=0.28, ls=':')
+    cax.annotate('', xy=(wh, y_ch + t + 0.21), xytext=(0.0, y_ch + t + 0.21),
+                 arrowprops=dict(arrowstyle='<|-|>', lw=0.40, color='#a8631a',
+                                 mutation_scale=2.4, shrinkA=0, shrinkB=0))
+    cax.text(wh + 0.035, y_ch + t + 0.21, r'$w_{\rm h}$', fontsize=fs,
              color='#a8631a', ha='left', va='center')
-
-    # layer labels, kept inside the inset
-    cax.text(-0.16, y_ch + 0.5 * t, 'monolayer', fontsize=fs, color='#1f6ea8',
-             ha='right', va='center')
-    cax.text(-0.16, y_ch - 0.52 * h_ox, 'dielectric', fontsize=fs,
-             color='#2f6f9e', ha='right', va='center')
-    cax.text(-0.16, y_ch - h_ox - 0.55 * h_gm, 'gate', fontsize=fs,
-             color='#3f4750', ha='right', va='center')
-    cax.text(0.5 * w, y_ch - h_ox - h_gm - 0.34, 'section A--A', fontsize=fs,
-             color=INK2, ha='center', va='center', style='italic')
-    return cax
+    cax.text(0.5 * (SX0 + SX1), y_ch - h_ox - h_g - 0.28, 'section A--A',
+             fontsize=fs, color=INK2, ha='center', va='center', style='italic')
+    return bax, cax
 
 
-# ---------------------------------------------------------------------------
 def _cut_plane(ax, fs=6.8, x=None):
     """Mark where the inset cross-section is taken."""
     if x is None:
-        x = XE - 0.58
-    a = project(np.array([[x, Y0 - 0.80, Z_CH + T_MONO]]))[0]
-    b = project(np.array([[x, Y0 + WR + 0.80, Z_CH + T_MONO]]))[0]
+        x = XS + 0.55
+    a = project(np.array([[x, Y0 - 0.95, Z_CH + T_MONO]]))[0]
+    b = project(np.array([[x, Y0 + WR + 0.98, Z_CH + T_MONO]]))[0]
     ax.plot([a[0], b[0]], [a[1], b[1]], color=INK, lw=0.55, ls=(0, (3.2, 1.6)),
             zorder=11)
     for p, t in ((a, 'A'), (b, 'A')):
@@ -538,7 +650,7 @@ def draw_device(ax, fs=6.8):
              Y0 + WR - HALO - 0.03, Z_CH + T_MONO + 0.001)
     _edge_charges(ax)
     tip_apex, beam_top, scat = _raman_tip(ax)
-    dims = _dimensions(ax, fs=fs)
+    dims = {}
     terms = _terminals(ax, fs=fs)
     _cut_plane(ax, fs=fs)
 
@@ -550,8 +662,8 @@ def draw_device(ax, fs=6.8):
         tip=beam_top,
         scatter=scat,
         charge=pr((XS + 0.30, Y0, Z_CH + 0.55 * T_MONO)),
-        halo=pr((XE - 0.55, Y0 + WR - HALO / 2, Z_CH + T_MONO)),
-        channel=pr((XS + 2.20, Y0 + WR / 2, Z_CH + T_MONO)),
+        halo=pr((XS + 0.30, Y0 + HALO / 2, Z_CH + T_MONO)),
+        channel=pr((XE - 1.55, Y0 + 0.62 * WR, Z_CH + T_MONO)),
         source=pr((RIB_X0 + 0.35, Y0 - 0.42, Z_CH + T_MONO + PAD_H)),
         drain=pr((XE + 1.20, Y0 - 0.42, Z_CH + T_MONO + PAD_H)),
         oxide=pr((2.05, 0.0, Z_OX + T_OX / 2)),
@@ -567,7 +679,7 @@ def draw_device(ax, fs=6.8):
     # the labels small relative to the device.
     allv = np.concatenate([f[2] for f in sc.faces], axis=0)
     P = project(allv)
-    P = np.vstack([P, project(np.array([[TIPX, Y0, Z_CH + 2.40]])),
+    P = np.vstack([P, project(np.array([[TIPX, Y0, Z_CH + 1.82]])),
                    np.array([beam_top, scat, terms['gate_term'],
                              terms['drain_term'], terms['source_term']])])
     x0, x1 = P[:, 0].min(), P[:, 0].max()
@@ -576,7 +688,7 @@ def draw_device(ax, fs=6.8):
     # asymmetric margins: a wide band below and to the left, which is where the
     # cross-section inset and the bottom labels live, and thin bands above and
     # to the right, which only have to clear the label columns.
-    ml, mr, mb, mt = 0.07, 0.07, 0.18, 0.17
+    ml, mr, mb, mt = 0.06, 0.06, 0.32, 0.11
     win_x0, win_x1 = x0 - ml * w, x1 + mr * w
     win_y0, win_y1 = y0 - mb * h, y1 + mt * h
     ww, hh = win_x1 - win_x0, win_y1 - win_y0
@@ -588,8 +700,8 @@ def draw_device(ax, fs=6.8):
         # the left, because the left band carries the cross-section inset and
         # the left label column while the right band only carries text.
         need = slot * hh - ww
-        win_x0 -= 0.52 * need
-        win_x1 += 0.48 * need
+        win_x0 -= 0.66 * need
+        win_x1 += 0.34 * need
     else:                                  # too short: deepen downwards
         need = ww / slot - hh
         win_y0 -= need
@@ -604,10 +716,10 @@ def draw_device(ax, fs=6.8):
 # read and checked in one place.
 LABELS = [
     # key,          text,                        colour,     x,     y,    ha
-    ('tip',         '532 nm\nexcitation',        GREEN,    0.335, 0.995, 'center'),
+    ('tip',         '532 nm\nexcitation',        GREEN,    0.575, 0.995, 'left'),
     ('channel',     '1H monolayer\nchannel',     '#1f6ea8', 0.985, 0.995, 'right'),
-    ('halo',        'damage halo',               '#a8631a', 0.985, 0.720, 'right'),
-    ('drain',       'drain',                     '#8a6d18', 0.985, 0.500, 'right'),
+    ('halo',        'damage halo',               '#a8631a', 0.008, 0.480, 'left'),
+    ('drain',       'drain',                     '#8a6d18', 0.985, 0.620, 'right'),
     ('source',      'source',                    '#8a6d18', 0.008, 0.830, 'left'),
     ('scatter',     'Raman\nscattering',         VERM,     0.008, 0.995, 'left'),
     ('gate_term',   r'$V_{\rm G}$',              INK2,     0.985, 0.170, 'right'),
