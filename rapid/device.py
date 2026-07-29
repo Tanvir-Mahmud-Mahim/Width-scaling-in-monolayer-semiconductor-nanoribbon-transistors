@@ -63,6 +63,7 @@ halo enters as mu.
 from __future__ import annotations
 
 import contextlib
+import sys
 import io
 import os
 
@@ -80,10 +81,29 @@ DEVICE = 'ribbon'
 REGION = 'channel'
 
 
+@contextlib.contextmanager
 def _quiet():
+    """Silence DEVSIM.
+
+    DEVSIM writes its progress from the C++ layer straight to file
+    descriptor 1, which contextlib.redirect_stdout cannot see, so the
+    descriptor itself is redirected for the duration of the block.
+    """
     if not _QUIET:
-        return contextlib.nullcontext()
-    return contextlib.redirect_stdout(io.StringIO())
+        yield
+        return
+    import os
+    sys.stdout.flush()
+    saved = os.dup(1)
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    try:
+        os.dup2(devnull, 1)
+        yield
+    finally:
+        sys.stdout.flush()
+        os.dup2(saved, 1)
+        os.close(devnull)
+        os.close(saved)
 
 
 def _devsim():
@@ -282,8 +302,13 @@ def _seed(mat, Vov, Vd, Cox_cm2, carrier):
 def solve_iv(mat: Material, W_nm, nd_bulk, Vov=1.5, Vds=1.0, Lch_nm=300.0,
              Cox=None, n_it_cm2=None, eps_env=None, sigma_line_cm=0.0,
              halo_nm=5.0, carrier='e', Rc_ohm_um=0.0, nx=48, strain=0.0,
-             nd_edge=None, max_bisect=40, tol=1e-6):
+             nd_edge=None, max_bisect=40, tol=1e-6, Vc_of_I=None):
     """Self-consistent drain current of one ribbon, in uA/um.
+
+    The contact can be either a lumped series resistance, Rc_ohm_um per
+    contact, or a resolved Schottky barrier passed as Vc_of_I, a callable
+    returning the voltage across one contact carrying a given current per
+    unit width.  When both are given the resolved contact wins.
 
     Returns the terminal current, the internal bias left after the contact
     drop, and the converged profiles along the channel.
@@ -308,9 +333,16 @@ def solve_iv(mat: Material, W_nm, nd_bulk, Vov=1.5, Vds=1.0, Lch_nm=300.0,
                     Vds_internal=0.0, iterations=0, converged=True,
                     x_nm=[], Psi=[], Vqf=[], ns=[])
 
-    _build(mat, Lch_nm, nx, Cox, Vov_eff, mu, vsat, carrier)
+    with _quiet():
+        _build(mat, Lch_nm, nx, Cox, Vov_eff, mu, vsat, carrier)
     # R_c is quoted per contact, as is conventional; the channel sees 2 R_c.
     Rc = 2.0 * Rc_ohm_um * 1e-4                      # ohm cm of width
+
+    # A resolved contact replaces the lumped resistance when one is supplied.
+    # Vc_of_I(I) returns the voltage dropped across a single contact carrying
+    # I amperes per centimetre of width, and comes from the NEGF solution of
+    # the Schottky barrier in quantum.py.  The channel then sees Vds less
+    # twice that drop, and the same bisection closes the loop.
 
     def channel(vd):
         """Terminal current in A/cm for an internal drain bias vd."""
@@ -326,7 +358,19 @@ def solve_iv(mat: Material, W_nm, nd_bulk, Vov=1.5, Vds=1.0, Lch_nm=300.0,
 
     ok, it, vd, I = True, 0, float(Vds), 0.0
     try:
-        if Rc <= 0.0:
+        if Vc_of_I is not None:
+            lo, hi = 0.0, float(Vds)
+            for it in range(max_bisect):
+                vd = 0.5 * (lo + hi)
+                I = channel(vd)
+                g = vd + 2.0 * float(Vc_of_I(I)) - Vds
+                if abs(g) <= tol * Vds:
+                    break
+                if g > 0:
+                    hi = vd
+                else:
+                    lo = vd
+        elif Rc <= 0.0:
             I = channel(Vds)
         else:
             lo, hi = 0.0, float(Vds)

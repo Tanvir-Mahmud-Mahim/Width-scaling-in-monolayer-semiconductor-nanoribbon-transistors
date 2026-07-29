@@ -173,7 +173,7 @@ def main():
     cmd('ScPsiErr', _fmt_sci(max(v['surface_potential_rel_err'], 1e-17)))
     cmd('ScElecErr', _fmt_sci(max(v['electrostatics_rel_err'], 1e-17)))
     cmd('ScContErr', _fmt_sci(max(v['continuity_rel_err'], 1e-17)))
-    cmd('ScSquareErr', '%.1f' % (100 * v['square_law_rel_err']))
+    cmd('ScSquareErr', '%.3f' % (100 * v['square_law_rel_err']))
     cmd('ScCq', '%.0f' % (1e6 * v['Cq_F_cm2']))
     cmd('ScCqCorr', '%.1f' % (100 * v['quantum_capacitance_correction']))
     cmd('ScRatio', '%.2f' % sc['compare']['ratio_mean'])
@@ -191,6 +191,63 @@ def main():
         cmd('IonScIdeal' + tag, '%.0f' % d['I_ideal'])
         cmd('MuSc' + tag, '%.0f' % d['mu'])
         cmd('IonScFrac' + tag, '%.2f' % (d['I_with_Rc'] / d['measured']))
+    # ---- energy-resolved Boltzmann mobility
+    er = r['energy_resolved']
+    cmd('ErVerify', _fmt_sci(max(er['verify']['rel_err'], 1e-17)))
+    cmd('ErRatioMin', '%.2f' % er['ratio_min'])
+    cmd('ErRatioMax', '%.2f' % er['ratio_max'])
+    cmd('ErDropMax', '%.0f' % (100 * (1.0 - er['ratio_min'])))
+    cmd('ErRiseMax', '%.0f' % (100 * (er['ratio_max'] - 1.0)))
+    for name, tag in (('MoS2', 'MoS'), ('WS2', 'WS'), ('MoSe2', 'MoSe'),
+                      ('WSe2', 'WSe')):
+        cmd('ErRatio' + tag, '%.2f' % er['materials'][name]['ratio_25nm'])
+        cmd('MuEr' + tag, '%.0f' % er['materials'][name]['mu_integral_25nm'])
+    dos_shift = max(abs(a['mu_integral'] - a['mu_single']) / a['mu_single']
+                    for a in er['dossena'])
+    cmd('ErDossenaShift', _fmt_sci(max(dos_shift, 1e-17)))
+
+    # ---- quantum transport
+    q = r['quantum']
+    v = q['verify']
+    cmd('QtRectErr', _fmt_sci(v['rect_barrier_max_abs_err']))
+    cmd('QtTunnelErr', '%.1f' % (100 * v['tunnelling_max_rel_err']))
+    cmd('QtFlatErr', _fmt_sci(max(v['flat_max_dev_from_unity'], 1e-17)))
+    cmd('QtBallErr', _fmt_sci(v['ballistic_rel_err']))
+    cmd('QtDiffErr', _fmt_sci(v['diffusive_rel_err']))
+    cmd('QtVinj', '%.1f' % (v['v_inj_m_s'] / 1e3))
+    cmd('LamScreen', '%.2f' % q['screening_length_nm'])
+    cmd('ThfO', '%.1f' % q['t_hfo2_nm'])
+    bal = q['ballistic']
+    for name, tag in (('MoS2', 'MoS'), ('WS2', 'WS'), ('MoSe2', 'MoSe'),
+                      ('WSe2', 'WSe')):
+        cmd('Lhalf' + tag, '%.1f' % bal[name]['L_half_nm'])
+        cmd('Ballist' + tag, '%.1f' % (100 * bal[name]['T_at_300nm']))
+        cmd('IBall' + tag, '%.0f' % bal[name]['I_ballistic'])
+    cmd('LhalfMin', '%.1f' % min(b['L_half_nm'] for b in bal.values()))
+    cmd('LhalfMax', '%.1f' % max(b['L_half_nm'] for b in bal.values()))
+    cmd('BallistMin', '%.1f' % (100 * min(b['T_at_300nm']
+                                          for b in bal.values())))
+    cmd('BallistMax', '%.1f' % (100 * max(b['T_at_300nm']
+                                          for b in bal.values())))
+    rq = q['contact_quantum']
+    cmd('RqMin', '%.0f' % min(x['R_quantum'] for x in rq.values()))
+    cmd('RqMax', '%.0f' % max(x['R_quantum'] for x in rq.values()))
+    cmd('RqMoS', '%.0f' % rq['MoS2']['R_quantum'])
+    cmd('RqRatio', '%.0f' % (q['R_measured_ohm_um']
+                             / min(x['R_quantum'] for x in rq.values())))
+    cmd('PhiEqMoS', '%.2f' % q['phi_from_measured_Rc']['MoS2'])
+    cmd('PhiEqWS', '%.2f' % q['phi_from_measured_Rc']['WS2'])
+    bvr = q['barrier_vs_resistor']
+    cmd('BvrFree', '%.0f' % bvr['I_transparent'])
+    cmd('BvrResistor', '%.0f' % bvr['I_resistor'])
+    cmd('BvrBarrier', '%.0f' % bvr['I_barrier'])
+    cmd('BvrRatio', '%.1f' % bvr['ratio'])
+    w = q['wse2']
+    cmd('PhiWSe', '%.2f' % w['phi_b_eV'])
+    cmd('IWSeFree', '%.0f' % w['I_transparent'])
+    cmd('IWSePhi', '%.0f' % w['I_at_phi'])
+    cmd('RcWSePhi', '%.0f' % w['R_contact_ohm_um'])
+
     cmd('RcWSeTwo', '%.1f' % (sc['Rc_WSe2_ohm_um'] / 1000.0))
     cmd('RcMeas', '%.0f' % sc['Rc_measured_ohm_um'])
     cmd('RcRatio', '%.0f' % (sc['Rc_WSe2_ohm_um'] / sc['Rc_measured_ohm_um']))

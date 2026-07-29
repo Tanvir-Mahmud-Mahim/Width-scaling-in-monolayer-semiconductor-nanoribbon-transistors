@@ -10,8 +10,12 @@ import os
 
 import numpy as np
 
+from scipy.optimize import brentq
+
 from . import adjoint, spectra, transport, datasets as D
-from .materials import all_materials, MATERIALS, Material
+from . import device, quantum
+from .materials import (all_materials, MATERIALS, Material,
+                        EPS_HFO2, EPS_SIO2)
 
 OUT = os.path.join(os.path.dirname(__file__), '..', 'results.json')
 
@@ -404,7 +408,6 @@ def A10_self_consistent(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
         included, and the contact resistance the p-type WSe2 measurement
         implies.
     """
-    from . import device
     if sigma_line is None:
         n_edge = A5_krayev(mats)['edge']['n_cm2']
         sigma_line = transport.edge_line_charge(n_edge, w_edge)
@@ -451,12 +454,15 @@ def A10_self_consistent(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
     Rc0 = D.PENA['Rc_ohm_um']
     Wc_curve = np.geomspace(9.0, 1000.0, 22)
     curves = {}
+    # These are the currents the article quotes, so they are computed with a
+    # transparent contact: the contact is treated separately, and as a
+    # resolved barrier rather than a resistance, in A12_quantum.
     for mname in ('WS2', 'MoS2', 'WSe2'):
         car = 'h' if mname == 'WSe2' else 'e'
         curves[mname] = dict(
             W=Wc_curve.tolist(),
             I=[device.solve_iv(mats[mname], w, nd_ref, carrier=car,
-                               Rc_ohm_um=Rc0, **kw)['I_uA_um']
+                               Rc_ohm_um=0.0, **kw)['I_uA_um']
                for w in Wc_curve])
     out['curves'] = curves
 
@@ -493,6 +499,176 @@ def A10_self_consistent(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
     return out
 
 
+def A11_energy_resolved(mats, nd_ref=1.3e12):
+    """The mobility from the full Boltzmann integral against the old one.
+
+    The single-energy relaxation time is exact for the channels whose rate is
+    energy independent in two dimensions, so what this experiment isolates is
+    the effect of carrying the wavevector dependence of screened Coulomb
+    scattering and the speed dependence of diffuse edge scattering.
+    """
+    out = {'verify': transport.verify_energy_resolved(mats['MoS2'])}
+    st = transport.STACK['HfO2_EOT1p5']
+    n_ref = 1.9e13
+    rows = {}
+    for name, m in mats.items():
+        car = 'h' if name == 'WSe2' else 'e'
+        kw = dict(n_cm2=n_ref, n_it_cm2=st['nit'], carrier=car,
+                  eps_env=st['eps'])
+        mu1, _ = transport.sheet_mobility(m, nd_ref, **kw)
+        mu2, parts, _ = transport.sheet_mobility_energy_resolved(m, nd_ref,
+                                                                 **kw)
+        mu1w = 1.0 / (1.0 / mu1 + 1.0 / transport.edge_scattering_mobility(
+            m, 25.0, car))
+        mu2w, _, _ = transport.sheet_mobility_energy_resolved(
+            m, nd_ref, W_nm=25.0, **kw)
+        rows[name] = dict(mu_single=float(mu1), mu_integral=float(mu2),
+                          ratio=float(mu2 / mu1),
+                          mu_single_25nm=float(mu1w),
+                          mu_integral_25nm=float(mu2w),
+                          ratio_25nm=float(mu2w / mu1w),
+                          parts={a: float(b) for a, b in parts.items()})
+    out['materials'] = rows
+    out['ratio_min'] = float(min(r['ratio_25nm'] for r in rows.values()))
+    out['ratio_max'] = float(max(r['ratio_25nm'] for r in rows.values()))
+    # the Dossena anchor is untouched by the refinement, because it carries no
+    # interface charge and both remaining channels are energy independent
+    ws2 = mats['WS2']
+    anc = []
+    for nd, mu in D.DOSSENA['points']:
+        a, _ = transport.sheet_mobility(ws2, nd, n_cm2=1.9e13, n_it_cm2=0.0)
+        b, _, _ = transport.sheet_mobility_energy_resolved(
+            ws2, nd, n_cm2=1.9e13, n_it_cm2=0.0)
+        anc.append(dict(nd=nd, mu_ref=mu, mu_single=float(a),
+                        mu_integral=float(b)))
+    out['dossena'] = anc
+    return out
+
+
+def A12_quantum(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
+    """Ballistic transport, tunnelling and a resolved Schottky contact.
+
+    Three questions the semiclassical solve cannot answer are answered here.
+    How far from ballistic is a 300 nm channel, and at what length does
+    ballistic transport take over?  What is the smallest contact resistance
+    physics allows, given that a two-dimensional channel carries a finite
+    number of modes?  And what Schottky barrier height does the p-type WSe2
+    current correspond to, now that the contact is a barrier a carrier
+    tunnels through rather than a fitted resistor?
+    """
+    out = {'verify': quantum.verify(mats['MoS2'])}
+    if sigma_line is None:
+        n_edge = A5_krayev(mats)['edge']['n_cm2']
+        sigma_line = transport.edge_line_charge(n_edge, w_edge)
+    st = transport.STACK['HfO2_EOT1p5']
+    cox = transport.COX['HfO2_EOT1p5']
+    t_hfo2 = 1.5 * EPS_HFO2 / EPS_SIO2                   # physical thickness
+    lam_c = quantum.screening_length_nm(EPS_HFO2, t_hfo2)
+    out['screening_length_nm'] = lam_c
+    out['t_hfo2_nm'] = float(t_hfo2)
+    n_ref = 1.9e13
+
+    # --- how ballistic is the channel, and where does the crossover sit ----
+    Ls = np.geomspace(1.0, 3000.0, 40)
+    ball = {}
+    for name, m in mats.items():
+        car = 'h' if name == 'WSe2' else 'e'
+        b = [quantum.ballisticity(m, L, nd_ref, n_ref, st['nit'], car,
+                                  st['eps'], 43.0)[0] for L in Ls]
+        b = np.array(b)
+        # length at which half the carriers cross without backscattering
+        i = int(np.argmin(np.abs(b - 0.5)))
+        Lhalf = float(np.interp(0.5, b[::-1], Ls[::-1]))
+        ball[name] = dict(L_nm=Ls.tolist(), T=b.tolist(),
+                          L_half_nm=Lhalf,
+                          T_at_300nm=float(np.interp(300.0, Ls, b)),
+                          I_ballistic=float(quantum.ballistic_current(
+                              m, n_ref, 1.0, car)))
+    out['ballistic'] = ball
+
+    # --- the quantum limit on contact resistance --------------------------
+    rq = {}
+    for name, m in mats.items():
+        car = 'h' if name == 'WSe2' else 'e'
+        rq[name] = dict(
+            R_quantum=quantum.contact_resistance(m, 0.0, lam_c, n_ref, car),
+            R_at_0p2eV=quantum.contact_resistance(m, 0.2, lam_c, n_ref, car))
+    out['contact_quantum'] = rq
+    out['R_measured_ohm_um'] = float(D.PENA['Rc_ohm_um'])
+
+    # barrier height that the measured n-type contact resistance implies
+    def _phi_for_R(m, car, target):
+        f = lambda p: quantum.contact_resistance(m, p, lam_c, n_ref,
+                                                 car) - target
+        return float(brentq(f, 0.0, 0.8, xtol=1e-4))
+
+    out['phi_from_measured_Rc'] = {
+        n: _phi_for_R(mats[n], 'e', D.PENA['Rc_ohm_um'])
+        for n in ('MoS2', 'WS2')}
+
+    # --- a resistor and a barrier of the same low-bias resistance are not
+    # the same contact.  A resistor drops I R and no more; a barrier also
+    # runs out of transmission, so it saturates.  The gap between the two is
+    # the reason a resolved contact is worth solving for.
+    mos = mats['MoS2']
+    kw0 = dict(Vov=1.5, Vds=1.0, Lch_nm=300.0, Cox=cox, n_it_cm2=st['nit'],
+               eps_env=st['eps'], carrier='e', nx=48,
+               halo_nm=D.HALO['RIE_nm'], sigma_line_cm=sigma_line)
+    phi_eq = out['phi_from_measured_Rc']['MoS2']
+
+    def _vc_e(phi, m=mos, car='e'):
+        V = np.concatenate([[0.0], np.geomspace(1e-4, 1.2, 70)])
+        I = np.concatenate([[0.0], quantum.contact_iv(m, phi, lam_c, n_ref,
+                                                      V[1:], car)]) * 1e-2
+        return lambda cur: float(np.interp(abs(cur), I, V))
+
+    I_free = device.solve_iv(mos, 25.0, nd_ref, **kw0)['I_uA_um']
+    I_res = device.solve_iv(mos, 25.0, nd_ref,
+                            Rc_ohm_um=D.PENA['Rc_ohm_um'], **kw0)['I_uA_um']
+    I_bar = device.solve_iv(mos, 25.0, nd_ref, Vc_of_I=_vc_e(phi_eq),
+                            **kw0)['I_uA_um']
+    out['barrier_vs_resistor'] = dict(
+        phi_b_eV=float(phi_eq), R_ohm_um=float(D.PENA['Rc_ohm_um']),
+        I_transparent=float(I_free), I_resistor=float(I_res),
+        I_barrier=float(I_bar), ratio=float(I_res / I_bar))
+
+    # --- the p-type WSe2 contact, resolved --------------------------------
+    wse2 = mats['WSe2']
+    kw = dict(Vov=1.5, Vds=1.0, Lch_nm=300.0, Cox=cox, n_it_cm2=st['nit'],
+              eps_env=st['eps'], carrier='h', halo_nm=D.HALO['RIE_nm'],
+              sigma_line_cm=sigma_line, nx=48)
+
+    def _vc(phi):
+        V = np.concatenate([[0.0], np.geomspace(1e-4, 1.2, 70)])
+        I = np.concatenate([[0.0], quantum.contact_iv(wse2, phi, lam_c,
+                                                      n_ref, V[1:], 'h')])
+        I_cm = I * 1e-2                                  # A/m -> A/cm width
+        return lambda cur: float(np.interp(abs(cur), I_cm, V))
+
+    def _I(phi):
+        return device.solve_iv(wse2, 43.0, nd_ref, Vc_of_I=_vc(phi),
+                               **kw)['I_uA_um']
+
+    meas = D.PENA['Ion']['WSe2']
+    phi_w = float(brentq(lambda p: _I(p) - meas, 0.05, 0.6, xtol=2e-4))
+    out['wse2'] = dict(phi_b_eV=phi_w, I_at_phi=float(_I(phi_w)),
+                       I_transparent=float(device.solve_iv(
+                           wse2, 43.0, nd_ref, **kw)['I_uA_um']),
+                       measured=float(meas),
+                       R_contact_ohm_um=quantum.contact_resistance(
+                           wse2, phi_w, lam_c, n_ref, 'h'))
+
+    # transmission through that barrier, for the figure
+    Ex = np.linspace(0.001, 0.6, 200)
+    out['wse2']['T_curve'] = dict(
+        E_eV=Ex.tolist(),
+        T=np.asarray(quantum.contact_transmission(
+            wse2, phi_w, 0.0, lam_c, Ex, 'h')).tolist())
+    x, U, _ = quantum.schottky_profile(phi_w, 0.0, lam_c, n_pts=241)
+    out['wse2']['profile'] = dict(x_nm=x.tolist(), U_eV=U.tolist())
+    return out
+
+
 def main():
     mats = all_materials()
     res = {}
@@ -512,6 +688,8 @@ def main():
     res['transport_validation'] = A7_transport_validation(mats)
     res['ribbons'] = A8_ribbons(mats)
     res['self_consistent'] = A10_self_consistent(mats)
+    res['energy_resolved'] = A11_energy_resolved(mats)
+    res['quantum'] = A12_quantum(mats)
     res['predictions'] = A9_predictions(mats)
     res['materials'] = {n: dict(wE=m.wE, wA=m.wA, wLA=m.wLA, gE=m.gE, gA=m.gA,
                                 C_A=m.C_A, Udef=m.Udef, mu_ph=m.mu_ph,

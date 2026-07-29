@@ -367,8 +367,8 @@ def fig2(res):
 
     # ---- (c) on-current against width ---------------------------------
     ax = fig.add_subplot(gs[2])
-    # the self-consistent solve, including the measured contact resistance,
-    # is what the text quotes, so it is what is plotted here
+    # the self-consistent solve with a transparent contact, which is what the
+    # text quotes; the contact is handled separately as a resolved barrier
     sc = res['self_consistent']['curves']
     Wl = np.array(sc['MoS2']['W'])
     for m in ['WS2', 'MoS2', 'WSe2']:

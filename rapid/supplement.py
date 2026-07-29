@@ -151,7 +151,7 @@ def figS2():
 def fig_adjoint():
     """Adjoint inversion: conditioning and synthetic map recovery.
 
-    Written as figS4.pdf because it is the fourth supplementary figure in
+    Written as figS5.pdf because it is the fifth supplementary figure in
     reading order."""
     mats = all_materials()
     m = mats['MoS2']
@@ -263,7 +263,7 @@ def fig_adjoint():
             r'$n$: %.3f' % tuple(rm), transform=ax.transAxes, fontsize=5.9,
             va='top', ha='right', color=INK2)
     _panel(ax, '(h)')
-    fig.savefig(os.path.join(FIGS, 'figS4.pdf'))
+    fig.savefig(os.path.join(FIGS, 'figS5.pdf'))
     plt.close(fig)
 
 
@@ -285,7 +285,9 @@ def fig_transport():
     nd = np.geomspace(1e11, 1e14, 70)
     tot, ph, pd, ci = [], [], [], []
     for n in nd:
-        t, parts = transport.sheet_mobility(m, n)
+        # the same Boltzmann integral the reported currents use, so the
+        # decomposition and the device numbers come from one calculation
+        t, parts, _ = transport.sheet_mobility_energy_resolved(m, n)
         tot.append(t)
         ph.append(parts['ph'])
         pd.append(parts['pd'])
@@ -315,7 +317,9 @@ def fig_transport():
     _panel(ax, '(b)')
 
     ax = axes[2]
-    fr = np.linspace(0.3, 0.8, 18)
+    # below about 0.35 the widest halo crosses on the plateau where the
+    # ribbon is damaged edge to edge, so W_c is not meaningful there
+    fr = np.linspace(0.4, 0.8, 18)
     st = transport.STACK['HfO2_EOT1p5']
     for j, h in enumerate([5.0, 20.0, 150.0]):
         vals = [transport.critical_width(
@@ -422,16 +426,30 @@ $\mu_{\rm meas}$ & $\mu_{\rm ceiling}$ \\
                'cal': 'calibrated once', 'geom': 'geometry',
                'assumed': 'assumed', 'unused': 'not used'}
     rows = []
+    extra = [
+        ('EPS_MONO, T_MONO', 'literature',
+         'monolayer out-of-plane permittivity and thickness, '
+         'set the contact screening length'),
+        ('barrier profile', 'assumed',
+         'band edge relaxes exponentially from the contact over the '
+         'screening length'),
+    ]
     for k, v in PROVENANCE.items():
         tag, _, src = v.partition(': ')
         kind = kind_of.get(tag, tag)
         if src == 'this work':
             src = 'frozen phonons and biaxial strain sweep, this work'
         rows.append((k, kind, src))
+    rows.extend(extra)
     body = []
     for k, kind, src in rows:
         key = k.replace('_', r'\_')
-        body.append(r'%s & %s & %s \\' % (key, kind, src))
+        # The two wide columns wrap inside a \parbox rather than through an
+        # array-package p-column.  REVTeX 4-2 patches the array internals and
+        # refuses to do so for array releases it does not recognise, which
+        # makes >{...}p{...} specifiers fail outright on current TeX
+        # distributions.  \parbox is plain LaTeX and cannot break that way.
+        body.append(r'\provkey{%s} & %s & \provsrc{%s} \\' % (key, kind, src))
     out.append(r"""\begin{table*}[t]
 \caption{Provenance of every group of constants used in this work.  Entries
 marked ``this work'' are computed here from first principles; ``calibrated
@@ -441,9 +459,10 @@ device dimension; ``assumed'' marks a modelling choice stated in the text; and
 ``not used'' marks a constant that is present in the code but multiplies zero
 in every result reported here.}
 \label{tab:prov}
+\providecommand{\provkey}[1]{\parbox[t]{0.26\textwidth}{\raggedright #1}}
+\providecommand{\provsrc}[1]{\parbox[t]{0.44\textwidth}{\raggedright #1}}
 \begin{ruledtabular}
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.26\textwidth} l
->{\raggedright\arraybackslash}p{0.44\textwidth}@{}}
+\begin{tabular}{@{}lll@{}}
 Constants & Origin & Source \\
 \hline
 """ + '\n'.join(body) + r"""
@@ -455,10 +474,109 @@ Constants & Origin & Source \\
         fh.write('\n\n'.join(out) + '\n')
 
 
+def fig_quantum():
+    """Quantum transport: mobility kernel, ballisticity, barrier, contact.
+
+    Written as figS4.pdf, the fourth supplementary figure in reading order."""
+    mats = all_materials()
+    res = _res()
+    er, q = res['energy_resolved'], res['quantum']
+    st = transport.STACK['HfO2_EOT1p5']
+    fig, axes = plt.subplots(1, 4, figsize=(FULL_W, 2.04))
+    fig.subplots_adjust(wspace=0.50, left=0.070, right=0.99, bottom=0.235,
+                        top=0.865)
+
+    # ---- (a) the energy-resolved relaxation time --------------------------
+    ax = axes[0]
+    ker = transport.transport_kernels(mats['MoS2'], 1.3e12, 0.0, 1.9e13,
+                                      st['nit'], 'e', st['eps'], W_nm=25.0)
+    kT = transport.KB * transport.T300 / transport.QE
+    x = ker['E'] / transport.QE / kT
+    # the phonon and point-defect times are nearly equal at this defect
+    # density, so they are drawn with different dashes to stay legible
+    for key, lab, c, ls in (('ph', 'phonon', CAT[0], '-'),
+                            ('pd', 'point defect', CAT[1], (0, (4, 2))),
+                            ('ci', 'interface charge', CAT[2], '-'),
+                            ('ed', 'edge, 25 nm', CAT[3], '-')):
+        ax.semilogy(x, np.asarray(ker['tau_channels'][key]) * 1e15,
+                    color=c, lw=1.3, ls=ls, label=lab)
+    ax.semilogy(x, ker['tau'] * 1e15, color=INK, lw=1.6, label='total')
+    ax.set_xlabel(r'$(E - E_{\rm c}) / k_{\rm B}T$')
+    ax.set_ylabel(r'$\tau$ (fs)')
+    ax.set_xlim(0, 12)
+    ax.set_ylim(1, 3e3)
+    ax.legend(loc='upper left', bbox_to_anchor=(0.01, 0.99), ncol=1,
+              handlelength=1.0, labelspacing=0.15, fontsize=5.6)
+    _panel(ax, '(a)')
+
+    # ---- (b) ballistic to diffusive crossover -----------------------------
+    ax = axes[1]
+    for name in MATERIALS:
+        b = q['ballistic'][name]
+        ax.semilogx(b['L_nm'], b['T'], color=CMAT[name], lw=1.4,
+                    label=LAB[name])
+    ax.axvline(300.0, color=INK2, lw=0.7, ls=':')
+    ax.axhline(0.5, color=INK2, lw=0.7, ls=':')
+    ax.set_xlabel(r'Channel length $L$ (nm)')
+    ax.set_ylabel(r'channel transmission $\mathcal{T}$')
+    ax.set_ylim(0, 1)
+    ax.annotate('measured devices', xy=(300, 0.02), xytext=(0.97, 0.24),
+                textcoords='axes fraction', ha='right', va='center',
+                fontsize=5.8, color=INK2,
+                arrowprops=dict(arrowstyle='-', lw=0.5, color=INK2,
+                                shrinkA=2, shrinkB=3))
+    ax.legend(loc='upper right', bbox_to_anchor=(0.99, 0.99), ncol=1,
+              handlelength=0.9, labelspacing=0.15, fontsize=5.8)
+    _panel(ax, '(b)')
+
+    # ---- (c) the resolved Schottky barrier and its transmission -----------
+    ax = axes[2]
+    pr = q['wse2']['profile']
+    ax.plot(pr['x_nm'], pr['U_eV'], color=CAT[1], lw=1.5)
+    ax.set_xlabel(r'Distance from contact (nm)')
+    ax.set_ylabel(r'$E_{\rm v}$ (eV)', color=CAT[1])
+    ax.tick_params(axis='y', colors=CAT[1])
+    ax.set_xlim(0, 8)
+    tc = q['wse2']['T_curve']
+    axi = ax.inset_axes([0.44, 0.44, 0.53, 0.50])
+    axi.semilogy(tc['E_eV'], np.maximum(tc['T'], 1e-6), color=CAT[0], lw=1.2)
+    axi.set_ylim(1e-4, 2)
+    axi.set_xlim(0, 0.6)
+    axi.tick_params(labelsize=5.0, pad=1.2)
+    axi.set_xlabel(r'$E_x$ (eV)', fontsize=5.4, labelpad=0.8)
+    axi.set_ylabel(r'$T$', fontsize=5.4, labelpad=0.8)
+    ax.annotate(r'$\phi_{\rm B}$', xy=(0.12, q['wse2']['phi_b_eV'] * 0.92),
+                fontsize=6.6, color=CAT[1], ha='left', va='top')
+    _panel(ax, '(c)')
+
+    # ---- (d) contact resistance against barrier height --------------------
+    ax = axes[3]
+    from . import quantum as qm
+    phis = np.linspace(0.0, 0.45, 22)
+    for name in ('MoS2', 'WS2', 'WSe2'):
+        car = 'h' if name == 'WSe2' else 'e'
+        Rc = [qm.contact_resistance(mats[name], p, q['screening_length_nm'],
+                                    1.9e13, car) for p in phis]
+        ax.semilogy(phis, Rc, color=CMAT[name], lw=1.4, label=LAB[name])
+    ax.axhline(q['R_measured_ohm_um'], color=INK2, lw=0.8, ls='--')
+    ax.annotate('measured', xy=(0.02, q['R_measured_ohm_um'] * 1.25),
+                fontsize=5.8, color=INK2, ha='left', va='bottom')
+    ax.set_xlabel(r'Barrier height $\phi_{\rm B}$ (eV)')
+    ax.set_ylabel(r'$R_{\rm c}$ ($\Omega\,\mu$m)')
+    ax.set_ylim(10, 1e5)
+    ax.legend(loc='lower right', bbox_to_anchor=(0.99, 0.02), ncol=1,
+              handlelength=0.9, labelspacing=0.15, fontsize=5.8)
+    _panel(ax, '(d)')
+
+    fig.savefig(os.path.join(FIGS, 'figS4.pdf'))
+    plt.close(fig)
+
+
 def main():
     figS1()
     figS2()
     fig_transport()
+    fig_quantum()
     fig_adjoint()
     tables()
     print('supplementary figures and tables written')

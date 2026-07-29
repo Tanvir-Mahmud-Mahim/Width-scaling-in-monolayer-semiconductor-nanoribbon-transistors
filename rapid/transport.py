@@ -23,6 +23,8 @@ Scattering channels
 """
 from __future__ import annotations
 
+from functools import lru_cache
+
 import numpy as np
 
 from .materials import (HBAR, QE, M0, KB, EPS0, T300, EPS_SIO2, EPS_HFO2,
@@ -32,8 +34,15 @@ from .materials import (HBAR, QE, M0, KB, EPS0, T300, EPS_SIO2, EPS_HFO2,
 # interface, cm^-2.  Single environmental constant of the transport layer,
 # calibrated once so that a defect-free monolayer MoS2 channel on SiO2 has the
 # room-temperature field-effect mobility reported for state-of-the-art devices.
-N_IT_SIO2 = 1.40e13
-N_IT_HFO2 = 4.00e13
+# Re-fixed against the same anchors when the mobility moved from a
+# single-energy relaxation time to the full Boltzmann integral: screened
+# Coulomb scattering is the one channel whose rate depends on the wavevector,
+# so it is the one whose calibration the refinement touches.  The neutral
+# point-defect potential U_DEFECT is unchanged, because a short-range
+# scatterer has an energy-independent rate in two dimensions and its anchor
+# carries no interface charge.
+N_IT_SIO2 = 1.867e13
+N_IT_HFO2 = 5.848e13
 
 # specularity of a top-down patterned nanoribbon edge (0 = fully diffuse)
 P_SPEC = 0.0
@@ -139,6 +148,197 @@ def sheet_mobility(mat: Material, nd_cm2, strain=0.0, n_cm2=1e13,
 
 
 # ---------------------------------------------------------------------------
+# energy-resolved transport kernel
+# ---------------------------------------------------------------------------
+# The mobilities above are relaxation-time results evaluated at a single
+# carrier energy.  That is exact for the two channels whose rate is
+# energy-independent in two dimensions (short-range point defects and, in the
+# equipartition limit, acoustic phonons) but not for screened Coulomb
+# scattering, whose matrix element depends on the wavevector, nor for diffuse
+# edge scattering, whose rate is proportional to the carrier speed.  The
+# functions below carry tau(E) for every channel and perform the Boltzmann
+# transport integral over the Fermi window, which is what a transport
+# calculation should do.
+
+
+def dos_2d(mat: Material, carrier='e', gv=2.0):
+    """Two-dimensional density of states, states per joule per m^2.
+
+    g_v = 2 for the K and K' valleys of a 1H monolayer.  The spin degeneracy
+    is 2 for the conduction band, whose spin splitting at K is a few tens of
+    meV, but 1 for the valence band, where the spin-orbit splitting at K is
+    0.15 eV in MoS2 and 0.46 eV in WSe2 and therefore far larger than k_B T.
+    """
+    m = (mat.mcK if carrier == 'e' else mat.mvK) * M0
+    gs = 2.0 if carrier == 'e' else 1.0
+    return gs * gv * m / (2.0 * np.pi * HBAR ** 2)
+
+
+def fermi_level(mat: Material, n_cm2, carrier='e', T=T300):
+    """Fermi level above the band edge, joules, for a 2D parabolic band.
+
+    Inverts n_s = g_2D k_B T ln[1 + exp(eta)] analytically.
+    """
+    g2 = dos_2d(mat, carrier)
+    kT = KB * T
+    n = max(float(n_cm2), 1e9) * 1e4
+    x = n / (g2 * kT)
+    # eta = log(exp(x) - 1), written so that neither branch overflows
+    if x > 1e-8:
+        eta = x + np.log1p(-np.exp(-x))
+    else:
+        eta = np.log(x)
+    return kT * eta
+
+
+@lru_cache(maxsize=256)
+def _tau_charged_cached(mstar, n_it_cm2, eps_env, d_setback_nm, nE, Emax_kT,
+                        nth=400):
+    """tau_ci on the standard energy grid, cached.
+
+    The screened Coulomb rate depends on the material only through the
+    effective mass, and on the device only through the interface charge
+    density and the dielectric environment.  It does not depend on the defect
+    density or on the ribbon width, which are the two quantities the sweeps
+    vary, so computing it once per distinct environment turns the width and
+    defect-density maps from minutes into seconds.
+    """
+    kT = KB * T300
+    E = np.linspace(1e-4 * kT, Emax_kT * kT, nE)
+    k = np.sqrt(2.0 * mstar * E) / HBAR
+    if n_it_cm2 <= 0:
+        return np.full(nE, np.inf)
+    qs = mstar * QE ** 2 / (2.0 * np.pi * EPS0 * eps_env * HBAR ** 2)
+    th = np.linspace(1e-4, np.pi, nth)
+    q = 2.0 * k[:, None] * np.sin(th[None, :] / 2.0)
+    V = QE ** 2 / (2.0 * EPS0 * eps_env * (q + qs)) \
+        * np.exp(-2.0 * q * d_setback_nm * 1e-9)
+    avg = np.trapezoid(V ** 2 * (1.0 - np.cos(th))[None, :], th, axis=1) / np.pi
+    inv_tau = mstar * (n_it_cm2 * 1e4) * avg / HBAR ** 3
+    return np.where(inv_tau > 0, 1.0 / np.maximum(inv_tau, 1e-300), np.inf)
+
+
+def _tau_charged(mat, n_it_cm2, k, carrier='e', eps_env=None,
+                 d_setback_nm=0.3, nth=400):
+    """Momentum relaxation time for screened Coulomb scattering at wavevector k.
+
+    Same matrix element as mobility_charged, but evaluated at the wavevector
+    of the state rather than at the Fermi wavevector, so the energy dependence
+    of the screened Coulomb cross-section is kept.
+    """
+    if float(n_it_cm2) <= 0:
+        return np.full_like(np.asarray(k, float), np.inf)
+    if eps_env is None:
+        eps_env = (EPS_SIO2 + EPS_TOP) / 2.0
+    m = (mat.mcK if carrier == 'e' else mat.mvK) * M0
+    qs = m * QE ** 2 / (2.0 * np.pi * EPS0 * eps_env * HBAR ** 2)
+    th = np.linspace(1e-4, np.pi, nth)
+    k = np.atleast_1d(np.asarray(k, float))
+    q = 2.0 * k[:, None] * np.sin(th[None, :] / 2.0)
+    V = QE ** 2 / (2.0 * EPS0 * eps_env * (q + qs)) \
+        * np.exp(-2.0 * q * d_setback_nm * 1e-9)
+    avg = np.trapezoid(V ** 2 * (1.0 - np.cos(th))[None, :], th, axis=1) / np.pi
+    nit = float(n_it_cm2) * 1e4
+    inv_tau = m * nit * avg / HBAR ** 3
+    return np.where(inv_tau > 0, 1.0 / np.maximum(inv_tau, 1e-300), np.inf)
+
+
+def transport_kernels(mat: Material, nd_cm2, strain=0.0, n_cm2=1e13,
+                      n_it_cm2=N_IT_SIO2, carrier='e', eps_env=None,
+                      W_nm=None, p=P_SPEC, nE=600, Emax_kT=40.0):
+    """Energy-resolved relaxation time, velocity and mean free path.
+
+    Returns a dict with the energy grid measured from the band edge and, on
+    that grid, the relaxation time of every channel, the total relaxation
+    time, the group velocity and the mean free path for backscattering.
+
+    The mean free path uses lambda(E) = (pi/2) v(E) tau(E), which is the
+    factor that makes the diffusive limit of the Landauer expression identical
+    to the Boltzmann conductivity for a two-dimensional parabolic band.  That
+    identity is checked in quantum.verify.
+    """
+    m = (mat.mcK if carrier == 'e' else mat.mvK) * M0
+    kT = KB * T300
+    E = np.linspace(1e-4 * kT, Emax_kT * kT, nE)          # joules, from Ec
+    k = np.sqrt(2.0 * m * E) / HBAR
+    v = HBAR * k / m
+
+    # phonons: anchored on a published first-principles mobility.  In two
+    # dimensions the acoustic deformation-potential rate is proportional to
+    # the density of states, which is energy independent, so a constant tau
+    # is the correct reduction of that anchor and reproduces mu_ph exactly.
+    tau_ph = m * mobility_phonon(mat, strain, carrier) * 1e-4 / QE
+    # short-range neutral point defects: energy independent in 2D
+    tau_pd = m * mobility_point_defect(mat, nd_cm2, carrier) * 1e-4 / QE
+    # screened Coulomb: evaluated at the wavevector of each state
+    if eps_env is None:
+        eps_env = (EPS_SIO2 + EPS_TOP) / 2.0
+    tau_ci = _tau_charged_cached(m, float(n_it_cm2), float(eps_env), 0.3,
+                                 int(nE), float(Emax_kT))
+
+    inv = 1.0 / tau_ph + 1.0 / tau_pd + 1.0 / tau_ci
+    chans = dict(ph=np.full_like(E, tau_ph), pd=np.full_like(E, tau_pd),
+                 ci=tau_ci)
+    if W_nm is not None:
+        # diffuse edge scattering: the rate is the speed divided by the width,
+        # so unlike the single-energy form it is not set by a thermal average
+        tau_ed = np.asarray(W_nm, float) * 1e-9 / (v * (1.0 - p))
+        inv = inv + 1.0 / tau_ed
+        chans['ed'] = tau_ed
+    tau = 1.0 / inv
+    return dict(E=E, k=k, v=v, tau=tau, tau_channels=chans, m=m,
+                lam=0.5 * np.pi * v * tau)
+
+
+def sheet_mobility_energy_resolved(mat: Material, nd_cm2, strain=0.0,
+                                   n_cm2=1e13, n_it_cm2=N_IT_SIO2,
+                                   carrier='e', eps_env=None, W_nm=None,
+                                   p=P_SPEC, nE=600):
+    """Boltzmann mobility from the full energy integral.
+
+        sigma = e^2 g_2D / m* * int dE (-df/dE) E tau(E)
+        n_s   = int dE g_2D f(E)
+        mu    = sigma / (e n_s)
+
+    A constant tau makes this identical to mu = e tau / m*, so the function
+    reduces exactly to sheet_mobility when every channel is energy
+    independent.  That degenerate case is checked in verify_energy_resolved.
+    """
+    ker = transport_kernels(mat, nd_cm2, strain, n_cm2, n_it_cm2, carrier,
+                            eps_env, W_nm, p, nE)
+    E, tau, m = ker['E'], ker['tau'], ker['m']
+    g2 = dos_2d(mat, carrier)
+    kT = KB * T300
+    Ef = fermi_level(mat, n_cm2, carrier)
+    x = np.clip((E - Ef) / kT, -300.0, 300.0)
+    mdf = np.exp(x) / (kT * (1.0 + np.exp(x)) ** 2)        # -df/dE
+    ns = g2 * kT * np.log1p(np.exp(np.clip(Ef / kT, -300.0, 300.0)))
+    sigma = QE ** 2 * g2 / m * np.trapezoid(mdf * E * tau, E)
+    mu = sigma / (QE * max(ns, 1e-30))
+    # per-channel mobilities on the same footing, for the decomposition plot
+    parts = {}
+    for name, tc in ker['tau_channels'].items():
+        s = QE ** 2 * g2 / m * np.trapezoid(mdf * E * tc, E)
+        parts[name] = float(s / (QE * max(ns, 1e-30)) * 1e4)
+    return float(mu * 1e4), parts, ker
+
+
+def verify_energy_resolved(mat: Material, n_cm2=1e13, carrier='e'):
+    """The energy integral must reproduce mu = e tau / m* for a constant tau.
+
+    Every channel is made energy independent by switching off the Coulomb and
+    edge terms, leaving only the phonon and point-defect times, so the exact
+    Drude answer is known.
+    """
+    mu_int, _, _ = sheet_mobility_energy_resolved(
+        mat, 1e12, n_cm2=n_cm2, n_it_cm2=0.0, carrier=carrier, W_nm=None)
+    mu_ref, _ = sheet_mobility(mat, 1e12, n_cm2=n_cm2, n_it_cm2=0.0,
+                               carrier=carrier)
+    return dict(mu_integral=float(mu_int), mu_drude=float(mu_ref),
+                rel_err=float(abs(mu_int - mu_ref) / mu_ref))
+
+
+# ---------------------------------------------------------------------------
 # nanoribbon layer
 # ---------------------------------------------------------------------------
 def edge_scattering_mobility(mat: Material, W_nm, carrier='e', p=P_SPEC):
@@ -152,28 +352,44 @@ def edge_scattering_mobility(mat: Material, W_nm, carrier='e', p=P_SPEC):
 
 def ribbon_mobility(mat: Material, W_nm, nd_bulk, nd_edge=None, halo_nm=5.0,
                     strain=0.0, n_cm2=1e13, n_it_cm2=N_IT_SIO2, carrier='e',
-                    eps_env=None, halo_contrast=20.0):
+                    eps_env=None, halo_contrast=20.0, energy_resolved=True):
     """Width-averaged nanoribbon mobility.
 
     The ribbon is treated as two parallel conducting strips: an interior of
     width W - 2*halo with the bulk defect density, and two damaged edge strips
     of width halo with an elevated defect density.  Both strips additionally
     suffer diffuse boundary scattering set by the full ribbon width.
-    """
-    W = np.asarray(W_nm, float)
-    nd_edge = nd_bulk * halo_contrast if nd_edge is None else nd_edge
-    mu_edge_geom = edge_scattering_mobility(mat, W, carrier)
 
-    mu_int, _ = sheet_mobility(mat, nd_bulk, strain, n_cm2, n_it_cm2, carrier,
+    With energy_resolved the strip mobilities come from the Boltzmann
+    integral, so the wavevector dependence of Coulomb scattering and the speed
+    dependence of edge scattering are carried properly.  The single-energy
+    route is kept because it is what the compact model needs and because the
+    comparison between the two is reported in the article.
+    """
+    W = np.atleast_1d(np.asarray(W_nm, float))
+    scalar = np.ndim(W_nm) == 0
+    nd_edge = nd_bulk * halo_contrast if nd_edge is None else nd_edge
+
+    if energy_resolved:
+        mu_int = np.array([sheet_mobility_energy_resolved(
+            mat, nd_bulk, strain, n_cm2, n_it_cm2, carrier, eps_env,
+            W_nm=float(w))[0] for w in W])
+        mu_dam = np.array([sheet_mobility_energy_resolved(
+            mat, nd_edge, strain, n_cm2, n_it_cm2, carrier, eps_env,
+            W_nm=float(w))[0] for w in W])
+    else:
+        mu_edge_geom = edge_scattering_mobility(mat, W, carrier)
+        mi, _ = sheet_mobility(mat, nd_bulk, strain, n_cm2, n_it_cm2, carrier,
                                eps_env)
-    mu_dam, _ = sheet_mobility(mat, nd_edge, strain, n_cm2, n_it_cm2, carrier,
+        md, _ = sheet_mobility(mat, nd_edge, strain, n_cm2, n_it_cm2, carrier,
                                eps_env)
-    mu_int = 1.0 / (1.0 / mu_int + 1.0 / mu_edge_geom)
-    mu_dam = 1.0 / (1.0 / mu_dam + 1.0 / mu_edge_geom)
+        mu_int = 1.0 / (1.0 / mi + 1.0 / mu_edge_geom)
+        mu_dam = 1.0 / (1.0 / md + 1.0 / mu_edge_geom)
 
     w_int = np.clip(W - 2.0 * halo_nm, 0.0, None)
     w_dam = np.minimum(W, 2.0 * halo_nm)
-    return (w_int * mu_int + w_dam * mu_dam) / W
+    out = (w_int * mu_int + w_dam * mu_dam) / W
+    return float(out[0]) if scalar else out
 
 
 # gate stacks: oxide capacitance (F/cm^2), interface trap density (cm^-2) and
