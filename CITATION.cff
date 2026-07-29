@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this dataset, please cite it as below."
+title: "Two Raman phonons measure the fixed edge charge that limits width scaling in monolayer semiconductor nanoribbon transistors: data, benchmarks and code"
+type: dataset
+authors:
+  - family-names: Mahim
+    given-names: "Tanvir M."
+    affiliation: "BRAC University"
+  - family-names: Rahman
+    given-names: "M. Mosaddequr"
+    affiliation: "BRAC University"
+license: Apache-2.0
+doi: 10.5281/zenodo.21670316
+repository-code: "https://github.com/Tanvir-Mahmud-Mahim/Width-scaling-in-monolayer-semiconductor-nanoribbon-transistors"
