@@ -1,0 +1,77 @@
+\begin{table*}[t]
+\caption{First-principles constants computed in this work. $a_0$ is the
+in-plane lattice constant used (\AA), $\omega_{E'}$ and $\omega_{A_1'}$ are the
+frozen-phonon zone-centre frequencies (cm$^{-1}$), $\gamma_{E'}$ and
+$\gamma_{A_1'}$ the corresponding mode Gr\"uneisen parameters,
+$\gamma_{\rm LA}$ the acoustic Gr\"uneisen parameter obtained from the strain
+dependence of the elastic constant, and $C_{2D}$ the in-plane elastic constant
+(N/m).  The lattice constant is an input; every other entry is computed in
+this work and none is fitted.}
+\label{tab:dft}
+\begin{ruledtabular}
+\begin{tabular}{lccccccc}
+Material & $a_0$ & $\omega_{E'}$ & $\omega_{A_1'}$ & $\gamma_{E'}$ &
+$\gamma_{A_1'}$ & $\gamma_{\rm LA}$ & $C_{2D}$ \\
+\hline
+MoS$_2$ & 3.184 & 380 & 405 & 1.01 & 0.63 & 2.30 & 151 \\
+WS$_2$ & 3.183 & 350 & 418 & 1.05 & 0.65 & 2.34 & 165 \\
+MoSe$_2$ & 3.319 & 281 & 237 & 1.00 & 0.66 & 3.07 & 124 \\
+WSe$_2$ & 3.322 & 243 & 245 & 1.07 & 0.68 & 3.15 & 135 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
+
+\begin{table*}[t]
+\caption{Inversion of the published atomic-layer-deposited and sputtered
+MoS$_2$ films. $R_{\rm sh}$ and $R_{\rm LA}$ are the two disorder-activated
+Raman ratios, $n_{\rm d}$ (cm$^{-2}$) and $L_{\rm D}$ (nm) the inverted defect
+density and mean inter-defect distance, and the last two columns the measured
+and point-defect-limited mobility (cm$^2$V$^{-1}$s$^{-1}$).}
+\label{tab:nattoo}
+\begin{ruledtabular}
+\begin{tabular}{lcccccc}
+Film & $R_{\rm sh}$ & $R_{\rm LA}$ & $n_{\rm d}$ & $L_{\rm D}$ &
+$\mu_{\rm meas}$ & $\mu_{\rm ceiling}$ \\
+\hline
+ALD as-grown & 0.325 & 0.043 & $7.3\times10^{12}$ & 3.7 & 0.16 & 29 \\
+ALD annealed & 0.230 & 0.032 & $5.4\times10^{12}$ & 4.3 & 0.44 & 33 \\
+sputtered as-grown & 0.687 & 0.128 & $2.2\times10^{13}$ & 2.1 & 0.03 & 14 \\
+sputtered annealed & 0.507 & 0.087 & $1.5\times10^{13}$ & 2.6 & --- & 19 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
+
+\begin{table*}[t]
+\caption{Provenance of every group of constants used in this work.  Entries
+marked ``this work'' are computed here from first principles; ``calibrated
+once'' means the value was fixed a single time against the cited published
+result and then held for every number reported; ``geometry'' means a nominal
+device dimension; ``assumed'' marks a modelling choice stated in the text; and
+``not used'' marks a constant that is present in the code but multiplies zero
+in every result reported here.}
+\label{tab:prov}
+\begin{ruledtabular}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.26\textwidth} l
+>{\raggedright\arraybackslash}p{0.44\textwidth}@{}}
+Constants & Origin & Source \\
+\hline
+BANDS & literature & Jin et al., Phys. Rev. B 90, 045422 (2014) \\
+MU\_PHONON & literature & Jin et al., Phys. Rev. B 90, 045422 (2014) \\
+PHONON & literature & Mignuzzi 2015, Berkdemir 2013, Terrones 2014 \\
+EXCITON & literature & Henriquez-Guerra et al., ACS AMI 15, 57369 (2023) \\
+DOPING\_MoS2 & literature & Chakraborty et al., Phys. Rev. B 85, 161403 (2012) \\
+RAMAN\_CAL & literature & Mignuzzi et al., Phys. Rev. B 91, 195411 (2015) \\
+gamma\_E, gamma\_A, gamma\_LA, C2D, dgap\_deps & this work & frozen phonons and biaxial strain sweep, this work \\
+C\_A (WS2, MoSe2, WSe2) & this work & predicted in this work by transfer \\
+GAMMA\_MEAS & literature & Michail et al., ACS AMI 16, 49602 (2024), MoS2 and WSe2 only \\
+CHI\_DOP & literature & Chernikov et al., Phys. Rev. Lett. 115, 126802 (2015) \\
+DEQK\_DEPS, DEGK\_DEPS & not used & strain-tuned valley shift, zero strain in every reported result \\
+COX, STACK & geometry & nominal gate-stack capacitance and permittivity \\
+VSAT & literature & Smithe et al., Nano Lett. 18, 4516 (2018), MoS2 value used for all four \\
+P\_SPEC & assumed & fully diffuse etched edge, p = 0 \\
+halo\_contrast & assumed & 20x defect density inside the damage halo \\
+Udef & calibrated once & fixed once on Dossena et al., npj 2D Mater. Appl. 9, 67 (2025) \\
+N\_IT & calibrated once & fixed once on measured monolayer field-effect mobility \\
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
