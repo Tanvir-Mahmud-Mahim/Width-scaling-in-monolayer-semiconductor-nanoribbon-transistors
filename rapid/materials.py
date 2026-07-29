@@ -18,15 +18,19 @@ MATERIALS = ['MoS2', 'WS2', 'MoSe2', 'WSe2']
 
 PROVENANCE = {
     'BANDS': 'lit: Jin et al., Phys. Rev. B 90, 045422 (2014)',
-    'MU_PHONON': 'lit: Jin et al., Phys. Rev. B 90, 045422 (2014)',
-    'PHONON': 'lit: Mignuzzi 2015, Berkdemir 2013, Terrones 2014',
+    'MU_PHONON': 'lit: Jin et al., Phys. Rev. B 90, 045422 (2014), Table III,\n'
+                 'the K-valley dominated column',
+    'PHONON': 'lit: Mignuzzi 2015 and Michail 2016 (MoS2), Berkdemir 2013\n'
+              '(WS2), Terrones 2014 (WSe2), Tonndorf, Opt. Express 21, 4908\n'
+              '(2013) (MoSe2)',
     'EXCITON': 'lit: Henriquez-Guerra et al., ACS AMI 15, 57369 (2023)',
     'DOPING_MoS2': 'lit: Chakraborty et al., Phys. Rev. B 85, 161403 (2012)',
     'RAMAN_CAL': 'lit: Mignuzzi et al., Phys. Rev. B 91, 195411 (2015)',
     'gamma_E, gamma_A, gamma_LA, C2D, dgap_deps': 'dft: this work',
     'C_A (WS2, MoSe2, WSe2)': 'dft: predicted in this work by transfer',
-    'GAMMA_MEAS': 'lit: Michail et al., ACS AMI 16, 49602 (2024), '
-                  'MoS2 and WSe2 only',
+    'GAMMA_MEAS': 'lit: Michail et al., ACS AMI 16, 49602 (2024): both\n'
+                  'optical modes of MoS2, and the A1\' mode and the 2LA\n'
+                  'overtone of WSe2. Comparison only, never substituted',
     'CHI_DOP': 'lit: Chernikov et al., Phys. Rev. Lett. 115, 126802 (2015)',
     'DEQK_DEPS, DEGK_DEPS': 'unused: strain-tuned valley shift, zero strain '
                             'in every reported result',
@@ -35,7 +39,9 @@ PROVENANCE = {
             'used for all four',
     'P_SPEC': 'assumed: fully diffuse etched edge, p = 0',
     'halo_contrast': 'assumed: 20x defect density inside the damage halo',
-    'Udef': 'cal: fixed once on Dossena et al., npj 2D Mater. Appl. 9, 67 (2025)',
+    'Udef': 'cal: fixed once on Dossena et al., npj 2D Mater. Appl. 9, 67\n'
+            '(2025), WS2 on disordered Al2O3, used as a short-range\n'
+            'scattering proxy',
     'N_IT': 'cal: fixed once on measured monolayer field-effect mobility',
 }
 
@@ -73,8 +79,10 @@ MU_PHONON = {'MoS2': 320.0, 'WS2': 690.0, 'MoSe2': 180.0, 'WSe2': 250.0}
 # --------------------------------------------------------------------------
 # Raman-active zone-centre modes (cm^-1), 300 K, monolayer, on SiO2
 #   MoS2  : Mignuzzi PRB 91, 195411 (2015); Michail APL 108, 173102 (2016)
-#   WS2   : Berkdemir Sci. Rep. 3, 1755 (2013)
-#   WSe2  : Terrones Sci. Rep. 4, 4215 (2014)
+#   WS2   : Berkdemir Sci. Rep. 3, 1755 (2013), 356 and 418 cm^-1 at 514.5 nm
+#   WSe2  : Terrones Sci. Rep. 4, 4215 (2014), the two modes near degenerate
+#           at about 250 cm^-1; that work is otherwise a DFPT study and its
+#           only monolayer measurement is this one
 #   MoSe2 : Tonndorf Opt. Express 21, 4908 (2013)
 # LA(M) is the disorder-activated zone-edge acoustic phonon.
 # --------------------------------------------------------------------------
@@ -117,19 +125,22 @@ RAMAN_CAL = dict(C_A=0.59, C_A_err=0.03, C_E=1.11, C_E_err=0.08,
                  alpha_A=0.5, alpha_E=0.8, laser_nm=532.0)
 
 # --------------------------------------------------------------------------
-# Measured biaxial-strain mode Grueneisen parameters, where they exist.  When
-# Direct biaxial-strain measurements exist only for MoS2 (both optical modes)
-# and for the A1' mode of WSe2: Michail et al., ACS Appl. Mater. Interfaces
-# 16, 49602 (2024).  That work does not cover WS2 or MoSe2, and no biaxial
-# measurement exists for the zone-edge acoustic branch of any of the four, so
-# the calculated values are used throughout and these entries serve only as a
-# comparison.
+# Measured biaxial-strain mode Grueneisen parameters, where they exist, in the
+# convention gamma = -(1/2 w) dw/deps used throughout.  Michail et al., ACS
+# Appl. Mater. Interfaces 16, 49602 (2024) cover both optical modes of MoS2
+# and, for WSe2, the A1' mode and the 2LA overtone; that last one is the only
+# direct biaxial measurement of a zone-edge acoustic Grueneisen parameter in
+# this family, and it is the value the acoustic lever arm is checked against.
+# The E' mode of WS2 has been measured biaxially by Michail et al., J. Phys.
+# Chem. C 127, 3506 (2023), but the value is not reproduced here and is not
+# used.  MoSe2 has not been measured.  The calculated values are used
+# throughout; these entries serve only as a comparison.
 # --------------------------------------------------------------------------
 GAMMA_MEAS = {
     'MoS2':  dict(gE=0.56, gA=0.31),
     'WS2':   dict(),
     'MoSe2': dict(),
-    'WSe2':  dict(gA=0.28),
+    'WSe2':  dict(gA=0.26, gLA=0.45),
 }
 
 # elastic / lattice
