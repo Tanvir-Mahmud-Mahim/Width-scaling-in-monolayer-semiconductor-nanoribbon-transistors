@@ -60,9 +60,10 @@ by patterning and the fixed charge $\sigma_{\rm e}$ that accumulates at the
 etched edges; a tip-enhanced Raman probe samples the ribbon with about ten
 nanometre resolution. (b) At the edge the $A_1'$ mode redshifts while the
 2LA(M) overtone does not. (c) Each mode gives one constraint in the
-strain-charge plane; they intersect at finite carrier density and zero strain
-for the edge, and at finite strain and zero charge for an interior
-inhomogeneity. (d) The edge charge produces a width-dependent threshold shift,
+strain-charge plane: the sloping solid lines are the $A_1'$ constraint and the
+vertical dashed lines the 2LA(M) constraint, each in the colour of the location
+it belongs to. They intersect at finite carrier density and zero strain for the
+edge, and at finite strain and zero charge for an interior inhomogeneity. (d) The edge charge produces a width-dependent threshold shift,
 so the width at which the on-current per unit width halves depends strongly on
 the gate stack. Curves are normalised to the value at 4~$\mu$m, the
 wide-channel reference used to define $W_{\rm c}$, which lies beyond the
@@ -157,13 +158,44 @@ scaled $A_1'$ rate changes the recovered edge charge by only
 \begin{figure*}[!tb]
 \includegraphics[width=\textwidth]{../figs/fig1.pdf}
 \caption{First-principles deformation response. (a) Mode Gr\"uneisen
-parameters from symmetric frozen-phonon calculations under biaxial strain,
-compared with direct measurements. (b) Computed strain derivative of the
+parameters from frozen-phonon calculations under biaxial strain, the $E'$ values
+from a symmetric displacement and the $A_1'$ values from a relaxed scan of the
+chalcogen height, compared with direct measurements. (b) Computed strain derivative of the
 $K$-point gap against the measured A-exciton gauge factor for the same four
 materials; the dashed line is equality. (c) Strain sensitivity of the two
 Raman channels used here. (d) Disorder-activated Raman calibration constant:
 measured for MoS$_2$, predicted here for the other three materials.}
 \label{fig:dft}
+\end{figure*}
+
+\begin{figure*}[!tb]
+\includegraphics[width=\textwidth]{../figs/fig2.pdf}
+\caption{Edge charge and its electrostatic signature. (a) Recovered edge
+carrier density and strain as the assumed acoustic Gr\"uneisen parameter is
+scanned; the assignment is fixed by the unshifted overtone. (b) Threshold
+shift predicted by Eq.~(\ref{eq:dvt}) for four gate stacks; the dotted line is
+ten per cent of the gate overdrive and the star marks the width at which a
+width-driven threshold shift was first reported.\cite{LiuEDL2012} (c) Predicted and measured on-current per unit
+width; measured points are the high-$\kappa$-gated devices of
+Ref.~\onlinecite{Pena2026}. (d) Defect densities inverted from the disorder-activated Raman ratio
+of published films, against their measured mobility and the point-defect
+ceiling.}
+\label{fig:edge}
+\end{figure*}
+
+\begin{figure*}[!tb]
+\includegraphics[width=\textwidth]{../figs/fig3.pdf}
+\caption{What sets the width limit. (a) Critical width against
+process-induced damage halo for four gate stacks; symbols mark reported halo
+widths for reactive-ion etching (RIE) and helium-ion milling (HIM). (b) On-current per
+unit width over ribbon width and defect density; horizontal lines mark
+representative growth technologies, the two atomic-layer-deposited and the
+sputtered values inverted here from published Raman ratios and the remaining
+three taken from the literature. (c) Screening of the four
+materials at a 25~nm width for three defect densities. (d) Critical width of
+the four materials; the dashed line is the narrowest ribbon demonstrated to
+date.}
+\label{fig:limit}
 \end{figure*}
 
 \emph{Edge charge from published nanoscale spectra.} Tip-enhanced Raman maps
@@ -230,46 +262,33 @@ weakly coupled.
 Carrying the recovered edge charge into a transport model connects it to the
 measured devices. We combine the phonon-limited mobility with neutral
 point-defect and screened interface-charge scattering, close the model with the
-measured monolayer MoS$_2$ saturation velocity,\cite{Smithe2018} and apply
-Eq.~(\ref{eq:dvt}) to the gate overdrive, taking $V_{\rm ov}=\Vov$~V,
-$V_{\rm DS}=1$~V and a 300~nm channel to match the measured devices. This
-gives \IonMoSTwentyfive\ and \IonMoSSeventyfive~$\mu$A/$\mu$m for MoS$_2$
-ribbons of width 25 and 75~nm on the high-$\kappa$ stack, against 310 and
-400~$\mu$A/$\mu$m measured, and \IonWSTwo~$\mu$A/$\mu$m for WS$_2$ at 43~nm
-against 420~$\mu$A/$\mu$m (Fig.~\ref{fig:edge}(c)).\cite{Pena2026} The WS$_2$ value is overestimated by
-about \IonWSover\%, and the p-type WSe$_2$ prediction lies well above the measurement
-because those devices are limited by contact resistance rather than by the
-channel.\cite{Sun2026,Mondal2024}
+measured monolayer MoS$_2$ saturation velocity,\cite{Smithe2018} and solve the
+channel self-consistently: the surface band bending and the electron
+quasi-Fermi potential are carried as coupled fields, so that the quantum
+capacitance, the fall of the channel charge towards the drain and the feedback
+of a series contact resistance all enter without approximation. The coupled
+system is solved by Newton's method in the open-source device simulator
+DEVSIM,\cite{Sanchez2022} with the edge charge entering through
+Eq.~(\ref{eq:dvt}) and the damage halo through the width-averaged mobility.
+Taking $V_{\rm ov}=\Vov$~V, $V_{\rm DS}=1$~V and a 300~nm channel to match the
+measured devices, this gives \IonScMoSTwentyfive\ and
+\IonScMoSSeventyfive~$\mu$A/$\mu$m for MoS$_2$ ribbons of width 25 and 75~nm on
+the high-$\kappa$ stack, against 310 and 400~$\mu$A/$\mu$m measured, and
+\IonScWSTwo~$\mu$A/$\mu$m for WS$_2$ at 43~nm against 420~$\mu$A/$\mu$m
+(Fig.~\ref{fig:edge}(c)).\cite{Pena2026} The model therefore reproduces the
+measured width dependence and the ordering of the materials while sitting
+between 21 and 38\%\ below the absolute level, which is what a semiclassical
+model carrying no fitted transport parameter can be expected to do.
 
-\begin{figure*}[!tb]
-\includegraphics[width=\textwidth]{../figs/fig2.pdf}
-\caption{Edge charge and its electrostatic signature. (a) Recovered edge
-carrier density and strain as the assumed acoustic Gr\"uneisen parameter is
-scanned; the assignment is fixed by the unshifted overtone. (b) Threshold
-shift predicted by Eq.~(\ref{eq:dvt}) for four gate stacks; the dotted line is
-ten per cent of the gate overdrive and the star marks the width at which a
-width-driven threshold shift was first reported.\cite{LiuEDL2012} (c) Predicted and measured on-current per unit
-width; measured points are the high-$\kappa$-gated devices of
-Ref.~\onlinecite{Pena2026}. (d) Defect densities inverted from the disorder-activated Raman ratio
-of published films, against their measured mobility and the point-defect
-ceiling.}
-\label{fig:edge}
-\end{figure*}
-
-\begin{figure*}[!tb]
-\includegraphics[width=\textwidth]{../figs/fig3.pdf}
-\caption{What sets the width limit. (a) Critical width against
-process-induced damage halo for four gate stacks; symbols mark reported halo
-widths for reactive-ion etching (RIE) and helium-ion milling (HIM). (b) On-current per
-unit width over ribbon width and defect density; horizontal lines mark
-representative growth technologies, the two atomic-layer-deposited and the two
-sputtered values inverted here from published Raman ratios and the remaining
-two taken from the literature. (c) Screening of the four
-materials at a 25~nm width for three defect densities. (d) Critical width of
-the four materials; the dashed line is the narrowest ribbon demonstrated to
-date.}
-\label{fig:limit}
-\end{figure*}
+The p-type WSe$_2$ device is the informative exception. The channel model
+predicts \IonScWSeTwo~$\mu$A/$\mu$m against 130~$\mu$A/$\mu$m measured, and
+reproducing the measurement requires a contact resistance of
+\RcWSeTwo~k$\Omega\,\mu$m per contact, about \RcRatio\ times the
+\RcMeas~$\Omega\,\mu$m reported for the n-type devices of the same
+work.\cite{Pena2026} That is the
+known difficulty of making a p-type contact to
+WSe$_2$,\cite{Sun2026,Mondal2024} and the self-consistent solve separates it
+from the channel rather than leaving it as an unquantified caveat.
 
 \emph{What sets the width limit.} The second control on scaling is the damage
 halo left by patterning, a strip beside each edge with an elevated defect
@@ -342,9 +361,15 @@ series would test all three.
 The predicted calibration constants for WS$_2$, MoSe$_2$ and WSe$_2$ rest on a
 double-resonance scaling argument and await measurement. The transport layer
 contains two constants fixed once against published results, the neutral
-defect potential and the interface charge density of each gate stack, and it
-does not include contact resistance, so the predicted currents are
-channel-limited ceilings.
+defect potential and the interface charge density of each gate stack. Currents
+quoted against measurement come from a self-consistent Poisson and
+drift-diffusion solve that includes contact resistance. The design map and the
+critical-width scans use the faster compact expression, which overestimates the
+absolute current by a nearly constant factor, the self-consistent to compact
+ratio being \ScRatio; the critical width, being a ratio of currents, differs
+between the two models by only \WcModelDiff\%. The solve is semiclassical, so quantum transport is not
+treated and short-channel electrostatics enter only through the assumed channel
+length.
 
 In summary, the quantity that limits width scaling in monolayer dichalcogenide
 nanoribbon transistors is fixed charge at the etched edge, and it can be read

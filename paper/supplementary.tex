@@ -7,8 +7,8 @@
 \usepackage{xurl}
 
 \input{numbers}
-\providecommand{\GammaLAkSix}{2.30}
-\providecommand{\GammaAkSix}{0.63}
+\providecommand{\GammaLAkSix}{2.24}
+\providecommand{\GammaAkSix}{0.62}
 \providecommand{\GammaAkFour}{0.63}
 
 \renewcommand{\thefigure}{S\arabic{figure}}
@@ -75,7 +75,9 @@ used.
 \caption{Convergence for monolayer MoS$_2$. (a) Energy per atom against the
 density-grid cutoff, referenced to 100~Ha. (b) Energy per atom against
 $k$-point sampling, referenced to a $6\times6\times1$ mesh. (c) Energy per
-atom against vacuum thickness. Dashed lines mark the production settings.}
+atom against the cell height $c$, that is the repeat length along the axis
+normal to the layer; the vacuum gap is $c$ less the layer thickness of about
+3.1~\AA. Dashed lines mark the production settings.}
 \label{figS1}
 \end{figure*}
 
@@ -271,6 +273,7 @@ per unit width follows from
 \frac{I_{\rm on}}{W}=qn_{\rm s}\frac{\mu\mathcal{E}}
 {1+\mu\mathcal{E}/v_{\rm sat}},\qquad
 n_{\rm s}=\frac{C_{\rm ox}(V_{\rm ov}-\Delta V_{\rm T})}{q},
+\label{eq:ion}
 \end{equation}
 with $\mathcal{E}=V_{\rm DS}/L_{\rm ch}$. Reported results use
 $V_{\rm ov}=\Vov$~V, $V_{\rm DS}=1$~V and $L_{\rm ch}=300$~nm, matching the
@@ -279,10 +282,11 @@ $v_{\rm sat}=3.4\times10^{6}$~cm/s.\cite{Smithe2018} No comparable
 measurement exists for WS$_2$, MoSe$_2$ or WSe$_2$, so the same value is used
 for all four rather than a guessed material dependence. The critical width $W_{\rm c}$ is the width at which
 $I_{\rm on}/W$ falls to half of its wide-channel value at the stated gate
-overdrive; Fig.~\ref{fig:transport}(c) shows that it grows smoothly by roughly a
-factor of four as the criterion is tightened from 0.3 to 0.8, with the ordering
-of the gate stacks unchanged, so the choice of 0.5 fixes the scale of
-$W_{\rm c}$ but not the comparisons drawn from it. Because the edge-charge
+overdrive; Fig.~\ref{fig:transport}(c) shows that it grows smoothly, by a
+factor of 3.8 for a 5~nm halo and by 2.4 for a 150~nm halo,
+as the criterion is tightened from 0.3 to 0.8, with the ordering of the halo
+widths unchanged, so the choice of 0.5 fixes the scale of $W_{\rm c}$ but not
+the comparisons drawn from it. Because the edge-charge
 term enters through $V_{\rm ov}-\Delta V_{\rm T}$, that branch of $W_{\rm c}$
 scales inversely with $V_{\rm ov}$, whereas the halo branch does not; the two
 contributions are therefore reported separately in the main text.
@@ -291,9 +295,88 @@ contributions are therefore reported separately in the main text.
 \includegraphics[width=\textwidth]{../figs/figS3.pdf}
 \caption{(a) Decomposition of the MoS$_2$ sheet mobility into its three
 scattering channels. (b) Ribbon mobility against width for four damage-halo
-widths. (c) Sensitivity of the critical width to the choice of criterion.}
+widths. (c) Sensitivity of the critical width to the choice of criterion.
+(d) The compact expression of Eq.~(\ref{eq:ion}) against the self-consistent
+solve of Eqs.~(\ref{eq:gate}) to (\ref{eq:cont}); the two differ by a nearly
+constant factor, so the critical width, which is a ratio, is almost unchanged.}
 \label{fig:transport}
 \end{figure*}
+
+\section{Self-consistent device solve}
+\label{sec:device}
+
+Every current that the article compares with measurement comes from a
+self-consistent solve of the channel rather than from the compact expression of
+Eq.~(\ref{eq:ion}); the design map and growth-technology lines of Fig.~4(b),
+the four-material screening of Fig.~4(c) and the critical-width scans use the
+compact expression, which is validated against the self-consistent solve at the
+end of this section. Two fields are carried at each point along the channel:
+the surface band bending $\psi$, that is the local shift of the conduction band
+edge with respect to the source Fermi level, and the electron quasi-Fermi
+potential $V$. They satisfy the vertical electrostatic balance
+\begin{equation}
+C_{\rm ox}(V_{\rm ov}-\Delta V_{\rm T}-\psi)=qn_{\rm s}(\psi,V),
+\label{eq:gate}
+\end{equation}
+with the sheet density of a two-dimensional parabolic band,
+\begin{equation}
+n_{\rm s}=g_{\rm 2D}k_{\rm B}T
+\ln\!\left[1+e^{\,q(\psi-V)/k_{\rm B}T}\right],\qquad
+g_{\rm 2D}=\frac{g_{\rm s}g_{\rm v}m^{*}}{2\pi\hbar^{2}},
+\label{eq:ns}
+\end{equation}
+and current continuity for drift and diffusion,
+\begin{equation}
+\frac{\mathrm{d}}{\mathrm{d}x}
+\left[\frac{qn_{\rm s}\mu\,\mathrm{d}V/\mathrm{d}x}
+{1+(\mu/v_{\rm sat})|\mathrm{d}V/\mathrm{d}x|}\right]=0 .
+\label{eq:cont}
+\end{equation}
+Writing the charge as Eq.~(\ref{eq:ns}) rather than as
+$C_{\rm ox}(V_{\rm GS}-V_{\rm T})/q$ places the quantum capacitance
+$C_{\rm q}=q^{2}g_{\rm 2D}f(\eta)$ in series with the oxide. The valley
+degeneracy is $g_{\rm v}=2$ for the two $K$ valleys of both bands. The spin
+degeneracy is $g_{\rm s}=2$ for electrons, whose conduction-band spin-orbit
+splitting at $K$ is a few tens of meV, and $g_{\rm s}=1$ for holes, whose
+valence-band splitting is several hundred meV, so that only the upper spin
+branch is occupied at the densities of interest.\cite{Kormanyos2015} For MoS$_2$ on the
+high-$\kappa$ stack $C_{\rm q}=\ScCq~\mu$F/cm$^{2}$, so the series combination
+removes \ScCqCorr\%\ of the charge that the oxide alone would imply.
+
+Because $V$ is the quasi-Fermi potential, drift and diffusion are both carried
+by its gradient, and the fall of $n_{\rm s}$ towards the drain that the compact
+expression omits appears automatically. The two equations are assembled on a
+one-dimensional finite-volume mesh and solved together by Newton's method in
+DEVSIM, an open-source device simulator, with the Jacobian formed from the
+symbolic derivatives of the models.\cite{Sanchez2022} The contact resistance is
+closed by bisection on the internal drain bias: the channel current is monotone
+in that bias, so $g(v)=v+2I(v)R_{\rm c}-V_{\rm DS}$ has a single root, with $R_{\rm c}$
+quoted per contact, whereas a
+fixed point on the current diverges once the contact carries most of the
+applied bias, which is exactly the p-type regime of interest.
+
+Four checks run with the code. The band bending returned by the coupled Newton
+solve matches an independent bisection solution of Eq.~(\ref{eq:gate}) at every
+node to $\ScPsiErr$, using only the converged quasi-Fermi potential as input;
+the residual of Eq.~(\ref{eq:gate}) itself, measured against the gate charge
+$C_{\rm ox}V_{\rm ov}$, is $\ScElecErr$; the current entering the source equals
+the current leaving the drain to $\ScContErr$; and in the long-channel,
+low-field limit the solver reproduces the textbook square law to
+\ScSquareErr\%\ once $C_{\rm q}$ is placed in series with the oxide, while the
+uncorrected square law is high by the \ScCqCorr\%\ quoted above.
+
+Figure~\ref{fig:transport}(d) compares the two models over the whole width
+range. The compact expression is high by a nearly constant factor: the ratio of
+the self-consistent to the compact current is $\ScRatio$ with a spread of
+$\ScRatioSpread$ for $W>12$~nm, close to the triode factor
+$(V_{\rm ov}-V_{\rm DS}/2)/V_{\rm ov}=0.67$ that the compact form leaves out.
+Because the critical width is defined as a ratio of currents, that common
+factor cancels almost entirely: $W_{\rm c}=\WcSelfCons$~nm from the
+self-consistent solve against \WcCompact~nm from the compact expression, a
+difference of \WcModelDiff\%. Every conclusion in the article about how narrow a
+ribbon can usefully be made therefore rests on a quantity that the two models
+agree on, while the absolute currents compared with measurement are the
+self-consistent ones.
 
 \section{Physics-guided adjoint inversion}
 \label{sec:adjoint}
@@ -303,7 +386,8 @@ further observables, so that a full hyperspectral acquisition constrains the
 three-component latent state
 $\bm\theta=(\log_{10}n_{\rm d},\varepsilon,n)$ through
 \begin{align}
-\omega_i &= \omega_i^0(1-2\gamma_i\varepsilon/100)+\lambda_in,\\
+\omega_i &= \omega_i^0(1-2\gamma_i\varepsilon/100)+\lambda_in,
+\quad i\in\{E',A_1'\},\\
 R_{\rm A} &= C_{\rm A}n_{\rm d}\times10^{-14},\\
 E_{\rm A} &= E_{\rm A}^0+\Xi\varepsilon/1000+\chi n/1000 .
 \end{align}
@@ -350,7 +434,10 @@ noise and the unperturbed coefficients. The objective stops decreasing after
 solver separates the three fields with root-mean-square
 errors of \RmseNd~dex, \RmseEps\%\ and $\RmseN\times10^{13}$~cm$^{-2}$.
 Removing the intensity-ratio channel leaves the defect density on its prior,
-which is why an intensity channel is indispensable.
+which is why an intensity channel is indispensable. Note that the two frequency
+channels of the image model are the two first-order modes $E'$ and $A_1'$: the
+overtone used in Section~\ref{sec:sep} is a single-point observable and does
+not enter here.
 
 \begin{figure*}[!tb]
 \includegraphics[width=\textwidth]{../figs/figS4.pdf}
@@ -412,11 +499,12 @@ rest on a double-resonance scaling argument and have not been measured.
 \item The model treats isolated point defects; grain-boundary networks and
 dielectric disorder are not resolved, so the mobility ceiling is an upper
 bound for nanocrystalline films.
-\item The transport layer uses a constant relaxation time within each channel
-and a compact velocity-saturation model rather than a self-consistent device
-solver, and it omits contact resistance, so the predicted currents are
-channel-limited ceilings. This is why the p-type WSe$_2$ prediction exceeds
-the measured value.
+\item The transport layer uses a constant relaxation time within each
+scattering channel, so mobility is evaluated at a single carrier energy rather
+than from a full energy-resolved integral. The device solve is semiclassical
+drift and diffusion with a field-dependent velocity, so ballistic and
+tunnelling transport are outside its scope, and the contact is represented by a
+lumped series resistance rather than by a resolved Schottky barrier.
 \item The comparison with the first-principles disordered WS$_2$
 result\cite{Dossena2025} is good at $2\times10^{13}$~cm$^{-2}$
 (\DosOnePred\ against \DosOneRef~cm$^2$V$^{-1}$s$^{-1}$) but the model
