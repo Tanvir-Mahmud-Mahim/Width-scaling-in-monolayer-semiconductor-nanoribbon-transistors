@@ -386,6 +386,113 @@ def A9_predictions(mats):
     return out
 
 
+def A10_self_consistent(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
+    """Self-consistent Poisson and drift-diffusion solve of the same devices.
+
+    The compact expression used for the wide scans evaluates the current from
+    the source-end sheet density, which omits the reduction of the channel
+    charge towards the drain and the quantum capacitance of a two-dimensional
+    channel, and cannot represent the feedback of a series contact resistance.
+    This stage solves the same devices without those approximations, using the
+    open-source device simulator DEVSIM, and reports
+
+      * the four solver checks that run with the code,
+      * the ratio between the two models across the whole width range,
+      * the critical width computed both ways, which is what every conclusion
+        about scaling actually rests on,
+      * the on-currents of the measured devices with the contact resistance
+        included, and the contact resistance the p-type WSe2 measurement
+        implies.
+    """
+    from . import device
+    if sigma_line is None:
+        n_edge = A5_krayev(mats)['edge']['n_cm2']
+        sigma_line = transport.edge_line_charge(n_edge, w_edge)
+    st = transport.STACK['HfO2_EOT1p5']
+    kw = dict(Cox=transport.COX['HfO2_EOT1p5'], n_it_cm2=st['nit'],
+              eps_env=st['eps'], Vov=1.5, Vds=1.0, Lch_nm=300.0,
+              halo_nm=D.HALO['RIE_nm'], sigma_line_cm=sigma_line)
+    compact_kw = dict(halo_nm=D.HALO['RIE_nm'], sigma_line_cm=sigma_line,
+                      Cox=transport.COX['HfO2_EOT1p5'], Vov=1.5, Vds=1.0,
+                      Lch_nm=300.0, n_it_cm2=st['nit'], eps_env=st['eps'])
+
+    out = dict(verify=device.verify(mats['MoS2']))
+
+    # --- the two models compared across the width range ----------------
+    W = np.geomspace(5.0, 4000.0, 26)
+    I_sc = np.array([device.solve_iv(mats['MoS2'], w, nd_ref, Rc_ohm_um=0.0,
+                                     **kw)['I_uA_um'] for w in W])
+    I_cp = np.asarray(transport.ribbon_current_density_uA_um(
+        mats['MoS2'], W, nd_ref, **compact_kw), float)
+    ratio = I_sc / np.maximum(I_cp, 1e-30)
+    keep = W >= 12.0
+    out['compare'] = dict(W=W.tolist(), I_sc=I_sc.tolist(),
+                          I_compact=I_cp.tolist(), ratio=ratio.tolist(),
+                          ratio_mean=float(ratio[keep].mean()),
+                          ratio_spread=float(ratio[keep].max()
+                                             - ratio[keep].min()))
+
+    # --- critical width both ways --------------------------------------
+    f_sc = I_sc / I_sc[-1]
+    f_cp = I_cp / I_cp[-1]
+
+    def _cross(f):
+        for i in range(1, len(f)):
+            if f[i - 1] < 0.5 <= f[i]:
+                x0, x1 = np.log(W[i - 1]), np.log(W[i])
+                return float(np.exp(x0 + (0.5 - f[i - 1]) * (x1 - x0)
+                                    / (f[i] - f[i - 1])))
+        return float('nan')
+
+    out['Wc_self_consistent'] = _cross(f_sc)
+    out['Wc_compact'] = _cross(f_cp)
+
+    # --- self-consistent I(W) curves for the measured materials --------
+    Rc0 = D.PENA['Rc_ohm_um']
+    Wc_curve = np.geomspace(9.0, 1000.0, 22)
+    curves = {}
+    for mname in ('WS2', 'MoS2', 'WSe2'):
+        car = 'h' if mname == 'WSe2' else 'e'
+        curves[mname] = dict(
+            W=Wc_curve.tolist(),
+            I=[device.solve_iv(mats[mname], w, nd_ref, carrier=car,
+                               Rc_ohm_um=Rc0, **kw)['I_uA_um']
+               for w in Wc_curve])
+    out['curves'] = curves
+
+    # --- the measured devices, with the contact resistance -------------
+    Rc = Rc0
+    dev = {}
+    for name, w, car, meas in (('MoS2_25nm', 25.0, 'e', D.PENA['Ion']['MoS2_25nm']),
+                               ('MoS2_75nm', 75.0, 'e', D.PENA['Ion']['MoS2_75nm']),
+                               ('WS2_43nm', 43.0, 'e', D.PENA['Ion']['WS2']),
+                               ('WSe2_43nm', 43.0, 'h', D.PENA['Ion']['WSe2'])):
+        mname = name.split('_')[0]
+        r0 = device.solve_iv(mats[mname], w, nd_ref, carrier=car,
+                             Rc_ohm_um=0.0, **kw)
+        rc = device.solve_iv(mats[mname], w, nd_ref, carrier=car,
+                             Rc_ohm_um=Rc, **kw)
+        dev[name] = dict(I_ideal=r0['I_uA_um'], I_with_Rc=rc['I_uA_um'],
+                         measured=meas, mu=r0['mu'],
+                         Vds_internal=rc['Vds_internal'])
+    out['devices'] = dev
+
+    # --- contact resistance implied by the p-type WSe2 measurement -----
+    target = D.PENA['Ion']['WSe2']
+    lo, hi = 0.0, 4.0e4
+    for _ in range(34):
+        mid = 0.5 * (lo + hi)
+        v = device.solve_iv(mats['WSe2'], 43.0, nd_ref, carrier='h',
+                            Rc_ohm_um=mid, **kw)['I_uA_um']
+        if v > target:
+            lo = mid
+        else:
+            hi = mid
+    out['Rc_WSe2_ohm_um'] = float(0.5 * (lo + hi))
+    out['Rc_measured_ohm_um'] = float(Rc)
+    return out
+
+
 def main():
     mats = all_materials()
     res = {}
@@ -404,6 +511,7 @@ def main():
     res['peng'] = A6_peng(mats)
     res['transport_validation'] = A7_transport_validation(mats)
     res['ribbons'] = A8_ribbons(mats)
+    res['self_consistent'] = A10_self_consistent(mats)
     res['predictions'] = A9_predictions(mats)
     res['materials'] = {n: dict(wE=m.wE, wA=m.wA, wLA=m.wLA, gE=m.gE, gA=m.gA,
                                 C_A=m.C_A, Udef=m.Udef, mu_ph=m.mu_ph,

@@ -219,7 +219,7 @@ def build_scene():
 
 def _edge_charges(ax):
     """Fixed charge along both etched edges, drawn as small discs."""
-    xs = np.linspace(XS + 0.38, XE - 1.75, 6)
+    xs = np.linspace(XS + 0.38, XE - 2.45, 5)
     pts = []
     for x in xs:
         for y in (Y0 + 0.11, Y0 + WR - 0.11):
@@ -273,8 +273,8 @@ def _raman_tip(ax, sc):
 def _width_marker(ax, fs=6.8):
     """Width dimension: two extension ticks and a double-headed arrow, drawn
     just above the ribbon so that it cannot be confused with a leader line."""
-    x = XE - 1.10
-    z0, z1 = Z_CH + 0.09, Z_CH + 0.62
+    x = XE - 1.85
+    z0, z1 = Z_CH + 0.38, Z_CH + 0.62
     for y in (Y0, Y0 + WR):
         seg = project(np.array([[x, y, z0], [x, y, z1]]))
         ax.plot(seg[:, 0], seg[:, 1], color=INK2, lw=0.45, zorder=9)
@@ -283,7 +283,7 @@ def _width_marker(ax, fs=6.8):
     ax.add_patch(FancyArrowPatch(a, b, arrowstyle='<|-|>', mutation_scale=4.2,
                                  lw=0.6, color=INK, shrinkA=0, shrinkB=0,
                                  zorder=10))
-    lab = project(np.array([[x, Y0 - 0.62, z1]]))[0]
+    lab = project(np.array([[x - 0.10, Y0 + WR + 0.40, z1 + 0.28]]))[0]
     ax.text(lab[0], lab[1], '$W$', fontsize=fs, color=INK, ha='center',
             va='center', zorder=10)
     return project(np.array([[x, Y0 + WR / 2, z1]]))[0]
@@ -308,10 +308,10 @@ def draw_device(ax, fs=6.8):
         tip=pr((TIPX - 0.42, Y0 + 0.11 - 0.29, 2.30)),
         charge=pr((XS + 0.55, Y0 + 0.11, Z_CH + 0.13)),
         halo=pr((XE - 1.55, Y0 + WR - HALO / 2, Z_CH + 0.09)),
-        channel=pr((XS + 1.95, Y0 + WR / 2, Z_CH + 0.09)),
+        channel=pr((XE - 1.90, Y0 + WR / 2, Z_CH + 0.09)),
         source=pr((1.55, Y0 - 0.50, Z_CH + 0.07 + PAD_H)),
         drain=pr((XE + 1.55, Y0 - 0.50, Z_CH + 0.07 + PAD_H)),
-        oxide=pr((1.20, 0.0, Z_OX + T_OX / 2)),
+        oxide=pr((3.60, 0.0, Z_OX + T_OX / 2)),
         substrate=pr((5.20, 0.0, -T_SI - T_OX / 2)),
         width=w_mid,
     )
@@ -352,13 +352,13 @@ def draw_device(ax, fs=6.8):
 LABELS = [
     # key,        text,                            colour,     x,     y,    ha
     ('tip',       'tip-enhanced\nRaman probe',      GREEN,    0.010, 0.990, 'left'),
-    ('channel',   'monolayer\nchannel',             '#1f6ea8', 0.990, 0.990, 'right'),
+    ('halo',      'process\ndamage halo',           '#a8631a', 0.990, 0.990, 'right'),
     ('source',    'source\ncontact',                '#8a6d18', 0.008, 0.665, 'left'),
-    ('halo',      'process\ndamage halo',           '#a8631a', 0.990, 0.620, 'right'),
+    ('channel',   'monolayer\nchannel',             '#1f6ea8', 0.990, 0.620, 'right'),
     ('charge',    'fixed edge\n' r'charge $\sigma_{\rm e}$',
-     VERM, 0.008, 0.215, 'left'),
+     VERM, 0.008, 0.250, 'left'),
     ('drain',     'drain contact',                  '#8a6d18', 0.990, 0.020, 'right'),
-    ('oxide',     'gate dielectric',                '#2f6f9e', 0.008, 0.075, 'left'),
+    ('oxide',     'gate dielectric',                '#2f6f9e', 0.008, 0.055, 'left'),
     ('substrate', 'Si handle wafer',                '#4a545e', 0.450, 0.010, 'center'),
 ]
 

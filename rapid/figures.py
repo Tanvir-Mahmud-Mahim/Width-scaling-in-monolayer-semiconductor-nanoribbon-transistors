@@ -367,10 +367,13 @@ def fig2(res):
 
     # ---- (c) on-current against width ---------------------------------
     ax = fig.add_subplot(gs[2])
-    Wl = np.array(rb['curves']['MoS2']['W'])
+    # the self-consistent solve, including the measured contact resistance,
+    # is what the text quotes, so it is what is plotted here
+    sc = res['self_consistent']['curves']
+    Wl = np.array(sc['MoS2']['W'])
     for m in ['WS2', 'MoS2', 'WSe2']:
-        ax.semilogx(Wl, np.array(rb['curves'][m]['I']), color=CMAT[m],
-                    lw=1.4, label=LAB[m])
+        ax.semilogx(Wl, np.array(sc[m]['I']), color=CMAT[m], lw=1.4,
+                    label=LAB[m])
     # only the high-kappa-gated measurements are shown, because the curves
     # are computed for that stack; the 43 nm MoS2 device of the same work was
     # gated through SiO2 and is not comparable here
@@ -384,7 +387,7 @@ def fig2(res):
     ax.set_xlabel('Nanoribbon width (nm)')
     ax.set_ylabel(r'$I_{\rm on}/W$ ($\mu$A $\mu$m$^{-1}$)')
     ax.set_xlim(9, 1000)
-    ax.set_ylim(0, 1000)
+    ax.set_ylim(0, 600)
     h, l = ax.get_legend_handles_labels()
     h.append(Line2D([], [], marker='o', ls='', ms=4.0, color=INK,
                     mfc='white', mew=1.0))
@@ -413,9 +416,9 @@ def fig2(res):
             t, o, hh = lbl[i]
             ax.annotate(t, (xx, yy), textcoords='offset points', xytext=o,
                         fontsize=5.9, color=INK2, ha=hh, va='center')
-    ax.annotate('', xy=(nd[1], mu[1] * 1.6), xytext=(nd[1], 24.0),
+    ax.annotate('', xy=(nd[1] * 1.9, mu[1] * 1.6), xytext=(nd[1] * 1.9, 24.0),
                 arrowprops=dict(arrowstyle='<->', lw=0.7, color=MUTED))
-    _note(ax, 0.025, 0.56, 'grain\nboundary\ndeficit')
+    _note(ax, 0.020, 0.60, 'grain\nboundary\ndeficit')
     ax.set_xlabel(r'inverted $n_{\rm d}$ (cm$^{-2}$)')
     ax.set_ylabel(r'$\mu$ (cm$^2$V$^{-1}$s$^{-1}$)')
     ax.set_xlim(8e11, 8e14)

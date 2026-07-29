@@ -167,6 +167,34 @@ def main():
         cmd('gLApred' + tag, '%.2f' %
             r['predictions'][m].get('gamma_LA', float('nan')))
 
+    # ---- self-consistent device solver
+    sc = r['self_consistent']
+    v = sc['verify']
+    cmd('ScPsiErr', _fmt_sci(max(v['surface_potential_rel_err'], 1e-17)))
+    cmd('ScElecErr', _fmt_sci(max(v['electrostatics_rel_err'], 1e-17)))
+    cmd('ScContErr', _fmt_sci(max(v['continuity_rel_err'], 1e-17)))
+    cmd('ScSquareErr', '%.1f' % (100 * v['square_law_rel_err']))
+    cmd('ScCq', '%.0f' % (1e6 * v['Cq_F_cm2']))
+    cmd('ScCqCorr', '%.1f' % (100 * v['quantum_capacitance_correction']))
+    cmd('ScRatio', '%.2f' % sc['compare']['ratio_mean'])
+    cmd('ScRatioSpread', '%.2f' % sc['compare']['ratio_spread'])
+    cmd('WcSelfCons', '%.0f' % sc['Wc_self_consistent'])
+    cmd('WcCompact', '%.0f' % sc['Wc_compact'])
+    cmd('WcModelDiff', '%.0f' % (100 * abs(sc['Wc_self_consistent']
+                                           - sc['Wc_compact'])
+                                 / sc['Wc_compact']))
+    for key, tag in (('MoS2_25nm', 'MoSTwentyfive'),
+                     ('MoS2_75nm', 'MoSSeventyfive'),
+                     ('WS2_43nm', 'WSTwo'), ('WSe2_43nm', 'WSeTwo')):
+        d = sc['devices'][key]
+        cmd('IonSc' + tag, '%.0f' % d['I_with_Rc'])
+        cmd('IonScIdeal' + tag, '%.0f' % d['I_ideal'])
+        cmd('MuSc' + tag, '%.0f' % d['mu'])
+        cmd('IonScFrac' + tag, '%.2f' % (d['I_with_Rc'] / d['measured']))
+    cmd('RcWSeTwo', '%.1f' % (sc['Rc_WSe2_ohm_um'] / 1000.0))
+    cmd('RcMeas', '%.0f' % sc['Rc_measured_ohm_um'])
+    cmd('RcRatio', '%.0f' % (sc['Rc_WSe2_ohm_um'] / sc['Rc_measured_ohm_um']))
+
     # k-mesh cross-check of the two strain derivatives that matter
     kc = os.path.join(ROOT, 'dft', 'kcheck_summary.json')
     if os.path.exists(kc):

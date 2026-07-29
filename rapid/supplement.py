@@ -73,7 +73,7 @@ def figS1():
     v0 = vac[-1]['E']
     ax.plot([r['vac'] for r in vac], [1000 * (r['E'] - v0) / 3 for r in vac],
             'o-', ms=3.5, color=CAT[2], mfc='white')
-    ax.set_xlabel('Vacuum thickness (Å)')
+    ax.set_xlabel(r'Cell height $c$ (Å)')
     ax.set_ylabel('Energy per atom (meV)')
     ax.axvline(15, color=MUTED, ls='--', lw=0.7)
     _panel(ax, '(c)')
@@ -254,7 +254,7 @@ def fig_adjoint():
     ax.set_xlabel('recovery error')
     ax.set_ylabel('probability density')
     ax.set_xlim(-0.35, 0.35)
-    ax.set_ylim(0, 33)
+    ax.set_ylim(0, 44)
     ax.legend(loc='upper left', bbox_to_anchor=(0.01, 0.99), handlelength=1.0,
               labelspacing=0.18, fontsize=5.9)
     rm = res['map_recovery']['rmse']
@@ -277,8 +277,8 @@ def fig_transport():
     m = mats['MoS2']
     res = _res()
     rb = res['ribbons']
-    fig, axes = plt.subplots(1, 3, figsize=(FULL_W, 2.04))
-    fig.subplots_adjust(wspace=0.48, left=0.078, right=0.99, bottom=0.235,
+    fig, axes = plt.subplots(1, 4, figsize=(FULL_W, 2.04))
+    fig.subplots_adjust(wspace=0.50, left=0.070, right=0.99, bottom=0.235,
                         top=0.865)
 
     ax = axes[0]
@@ -326,11 +326,32 @@ def fig_transport():
         ax.semilogy(fr, vals, color=CAT[j], lw=1.3, label='halo %g nm' % h)
     ax.set_xlabel(r'criterion $I/I_{\rm wide}$')
     ax.set_ylabel(r'$W_{\rm c}$ (nm)')
-    ax.set_ylim(8, 6e3)
-    ax.legend(loc='upper left', bbox_to_anchor=(0.01, 0.99), ncol=2,
-              handlelength=1.1, labelspacing=0.18, columnspacing=0.7,
-              fontsize=6.0)
+    ax.set_ylim(8, 2e4)
+    ax.legend(loc='upper left', bbox_to_anchor=(0.01, 0.99), ncol=1,
+              handlelength=1.1, labelspacing=0.16, fontsize=5.9)
     _panel(ax, '(c)')
+
+    # ---- (d) compact expression against the self-consistent solve ------
+    ax = axes[3]
+    sc = res['self_consistent']
+    cmp_ = sc['compare']
+    Wv = np.array(cmp_['W'])
+    ax.semilogx(Wv, cmp_['I_compact'], color=MUTED, lw=1.3, ls='--',
+                label='compact')
+    ax.semilogx(Wv, cmp_['I_sc'], color=CAT[0], lw=1.5,
+                label='self-consistent')
+    ax.set_xlabel('Nanoribbon width (nm)')
+    ax.set_ylabel(r'$I_{\rm on}/W$ ($\mu$A/$\mu$m)')
+    ax.set_ylim(0, max(cmp_['I_compact']) * 1.42)
+    ax.legend(loc='upper left', bbox_to_anchor=(0.02, 0.99), handlelength=1.2,
+              labelspacing=0.18, fontsize=6.0)
+    ax.text(0.97, 0.42, 'ratio %.2f\n$W_{\\rm c}$: %.0f vs %.0f nm'
+            % (cmp_['ratio_mean'], sc['Wc_self_consistent'],
+               sc['Wc_compact']),
+            transform=ax.transAxes, fontsize=5.9, color=INK2, ha='right',
+            va='top')
+    _panel(ax, '(d)')
+
     fig.savefig(os.path.join(FIGS, 'figS3.pdf'))
     plt.close(fig)
 
