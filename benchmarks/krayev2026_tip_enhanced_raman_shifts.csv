@@ -1,0 +1,4 @@
+"# Tip-enhanced Raman shifts of lithographically patterned monolayer MoS2 nanoribbons, read from Krayev et al. (2026). Ribbon width 60 nm; inhomogeneity 50-100 nm."
+location,delta_omega_A1p_cm-1,delta_omega_2LA_cm-1
+ribbon edge,-0.5,0.0
+interior inhomogeneity,-0.6,-2.8

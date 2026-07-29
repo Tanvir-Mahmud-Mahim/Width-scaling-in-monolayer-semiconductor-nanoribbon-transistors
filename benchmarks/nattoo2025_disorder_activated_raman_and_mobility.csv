@@ -1,0 +1,6 @@
+"# Disorder-activated Raman intensity ratios and measured mobilities of atomic-layer-deposited and sputtered MoS2 films, read from Nattoo et al. (2025)."
+film,R_shoulder,R_shoulder_err,R_LA,R_LA_err,mobility_cm2_V-1_s-1
+ALD as-grown,0.325,0.031,0.043,0.003,0.16
+ALD annealed,0.23,0.068,0.032,0.002,0.44
+sputtered as-grown,0.687,0.022,0.128,0.004,0.03
+sputtered annealed,0.507,0.012,0.087,0.007,nan

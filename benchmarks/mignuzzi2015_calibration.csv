@@ -1,0 +1,3 @@
+"# Disorder-activated Raman calibration constant of monolayer MoS2 at 532 nm, read from Mignuzzi et al. (2015)."
+quantity,value,err,units
+C_A,0.59,0.03,nm^2

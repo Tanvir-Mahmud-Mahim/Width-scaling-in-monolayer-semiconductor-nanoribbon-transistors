@@ -1,0 +1,6 @@
+# Measured A-exciton biaxial gauge factors used as the independent check on the computed gap deformation potentials.
+material,gauge_meV_per_percent,gauge_err
+WS2,-129.0,3.0
+WSe2,-120.0,3.0
+MoS2,-100.0,3.0
+MoSe2,-64.0,4.0

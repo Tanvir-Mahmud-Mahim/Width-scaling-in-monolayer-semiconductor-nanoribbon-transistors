@@ -1,0 +1,4 @@
+# Reported process-induced damage halo widths.
+process,halo_width_nm
+reactive-ion etching,5.0
+helium-ion milling,150.0
