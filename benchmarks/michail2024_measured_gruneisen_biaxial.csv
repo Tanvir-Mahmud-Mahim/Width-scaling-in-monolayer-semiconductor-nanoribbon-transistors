@@ -1,4 +1,4 @@
-"# Mode Grueneisen parameters measured under biaxial strain, read from Michail et al. (2024). Only MoS2 and the A1p mode of WSe2 are covered by that work."
-material,gamma_Ep,gamma_Ep_err,gamma_A1p,gamma_A1p_err
-MoS2,0.56,0.02,0.31,0.02
-WSe2,nan,nan,0.28,0.02
+"# Mode Grueneisen parameters measured under biaxial strain, read from Michail et al. (2024), in the convention gamma = -(1/2 w) dw/deps. That work covers both optical modes of MoS2 and the A1p mode and the 2LA overtone of WSe2. Blank entries were not measured."
+material,gamma_Ep,gamma_Ep_err,gamma_A1p,gamma_A1p_err,gamma_LA,gamma_LA_err
+MoS2,0.56,0.02,0.31,0.02,nan,nan
+WSe2,nan,nan,0.26,0.02,0.45,0.02

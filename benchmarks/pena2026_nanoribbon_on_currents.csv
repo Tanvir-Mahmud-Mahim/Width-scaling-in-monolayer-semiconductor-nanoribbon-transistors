@@ -1,8 +1,8 @@
-"# On-current per unit width of monolayer nanoribbon transistors, read from Pena et al. (2026). MoS2_SiO2_43nm was gated through SiO2 and is not comparable with the high-kappa curves in the article."
-device,on_current_uA_per_um
-MoS2_HfO2,560.0
-MoS2_SiO2_43nm,620.0
-MoS2_75nm,400.0
-MoS2_25nm,310.0
-WS2,420.0
-WSe2,130.0
+"# On-current per unit width of monolayer nanoribbon transistors at Vds = 1 V, read from Pena et al. (2026). Only the high-kappa devices are modelled in the article: the 96 nm SiO2 back-gated devices are driven at a gate overdrive that is not reported device by device."
+device,material,carrier,width_nm,channel_length_nm,gate_stack,on_current_uA_per_um
+MoS2_50nm_HfO2,MoS2,e,50.0,50.0,HfO2_EOT1p5,460.0
+WS2_50nm_HfO2,WS2,e,50.0,50.0,HfO2_EOT1p5,420.0
+WSe2_50nm_HfO2,WSe2,h,50.0,50.0,HfO2_EOT1p5,130.0
+MoS2_25nm_SiO2_backgated,MoS2,e,25.0,50.0,SiO2_96nm,310.0
+MoS2_43nm_SiO2_backgated,MoS2,e,43.0,300.0,SiO2_96nm,620.0
+MoS2_75nm_SiO2_backgated,MoS2,e,75.0,300.0,SiO2_96nm,400.0

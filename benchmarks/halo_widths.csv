@@ -1,4 +1,4 @@
-# Reported process-induced damage halo widths.
+# Process-induced damage halo widths. Only the helium-ion value is measured; the gentle-etch value is a modelling choice that is scanned over two orders of magnitude in the article.
 process,halo_width_nm
-reactive-ion etching,5.0
-helium-ion milling,150.0
+"XeF2 dry etch (bound, not measured)",5.0
+helium-ion milling (measured),150.0
