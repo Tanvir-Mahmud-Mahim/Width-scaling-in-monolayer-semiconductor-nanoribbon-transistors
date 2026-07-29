@@ -11,17 +11,23 @@ echo "== figures =="
 python3 -m rapid.figures
 python3 -m rapid.supplement
 python3 -m rapid.numbers
-echo "== latex =="
-cd paper
-for doc in main supplementary; do
-  pdflatex -interaction=nonstopmode $doc > /dev/null 2>&1 || true
-  bibtex $doc > /dev/null 2>&1 || true
-  for _ in 1 2 3; do
+# The manuscript sources are not distributed with the public repository, so
+# the typesetting step runs only when a paper/ directory is present.
+if [ -f paper/main.tex ]; then
+  echo "== latex =="
+  cd paper
+  for doc in main supplementary; do
     pdflatex -interaction=nonstopmode $doc > /dev/null 2>&1 || true
+    bibtex $doc > /dev/null 2>&1 || true
+    for _ in 1 2 3; do
+      pdflatex -interaction=nonstopmode $doc > /dev/null 2>&1 || true
+    done
+    echo -n "$doc: "; pdfinfo $doc.pdf | grep -i '^Pages'
+    echo "  overfull boxes: $(grep -c 'Overfull' $doc.log || true)"
   done
-  echo -n "$doc: "; pdfinfo $doc.pdf | grep -i '^Pages'
-  echo "  overfull boxes: $(grep -c 'Overfull' $doc.log || true)"
-done
-cd ..
+  cd ..
+else
+  echo "== latex == skipped, no paper/ sources in this tree"
+fi
 echo "== archives =="
 python3 make_archive.py

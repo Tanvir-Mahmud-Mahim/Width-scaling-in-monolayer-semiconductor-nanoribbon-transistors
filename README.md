@@ -76,10 +76,13 @@ rapid/          the analysis package
 
 benchmarks/     published measurements as flat CSV, one file per source
 figs/           the figures as published, vector PDF
-paper/          manuscript and supplementary sources, and the built PDFs
-finalize.sh     rebuilds everything end to end
+finalize.sh     rebuilds every number and figure end to end
 results.json    every computed quantity quoted in the article
 ```
+
+The manuscript sources and the built PDFs are not part of this repository. The
+article itself is the published record; everything needed to reproduce the
+numbers and the figures behind it is here.
 
 ---
 
@@ -96,9 +99,10 @@ bash finalize.sh
 `apt install libopenblas-dev liblapack-dev` is enough.
 
 `finalize.sh` reduces the stored density functional theory output, runs every
-numerical experiment, regenerates all eight figures and three tables, exports
-every quoted number as a LaTeX macro, and typesets both PDFs. It prints the
-page count and the number of overfull boxes for each document.
+numerical experiment, regenerates all eight figures and three tables, and
+exports every quoted number as a LaTeX macro. If a `paper/` directory with the
+manuscript sources is present it also typesets the PDFs and reports the page
+count; without one it stops after the macros, which is the normal case here.
 
 To run the individual stages:
 
@@ -107,7 +111,7 @@ cd dft && python postprocess.py          # raw output -> constants
 cd .. && python -m rapid.analysis        # -> results.json
 python -m rapid.figures                  # main-text figures
 python -m rapid.supplement               # supplementary figures and tables
-python -m rapid.numbers                  # -> paper/numbers.tex
+python -m rapid.numbers                  # -> numbers.tex, one macro per quantity
 ```
 
 Re-running the density functional theory needs only PySCF and takes a few hours
