@@ -213,7 +213,7 @@ def A5b_krayev_robustness(mats, gvals=None):
     """
     m = mats['MoS2']
     if gvals is None:
-        gvals = np.linspace(0.4, 2.6, 45)
+        gvals = np.linspace(0.3, 3.3, 61)
     w2LA = 2.0 * (m.wLA or 227.6)
     dwA_deps = -2.0 * m.gA * m.wA / 100.0
     dwA_dn = m.dA
@@ -281,7 +281,7 @@ def A8_ribbons(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
         n_edge = A5_krayev(mats)['edge']['n_cm2']
         sigma_line = transport.edge_line_charge(n_edge, w_edge)
     st = transport.STACK['HfO2_EOT1p5']
-    base = dict(halo_nm=D.HALO['RIE_nm'], sigma_line_cm=sigma_line,
+    base = dict(halo_nm=D.HALO['GENTLE_nm'], sigma_line_cm=sigma_line,
                 Cox=transport.COX['HfO2_EOT1p5'], Vov=1.5, Vds=1.0,
                 Lch_nm=300.0, n_it_cm2=st['nit'], eps_env=st['eps'])
     W = np.geomspace(5.0, 1000.0, 140)
@@ -321,7 +321,7 @@ def A8_ribbons(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
 
     # helium-ion versus reactive-ion patterning
     halo_cmp = {}
-    for tag, h in (('RIE', D.HALO['RIE_nm']), ('HIM', D.HALO['HIM_nm'])):
+    for tag, h in (('GENTLE', D.HALO['GENTLE_nm']), ('HIM', D.HALO['HIM_nm'])):
         kw = dict(base, halo_nm=h)
         halo_cmp[tag] = dict(
             W=W.tolist(),
@@ -414,8 +414,8 @@ def A10_self_consistent(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
     st = transport.STACK['HfO2_EOT1p5']
     kw = dict(Cox=transport.COX['HfO2_EOT1p5'], n_it_cm2=st['nit'],
               eps_env=st['eps'], Vov=1.5, Vds=1.0, Lch_nm=300.0,
-              halo_nm=D.HALO['RIE_nm'], sigma_line_cm=sigma_line)
-    compact_kw = dict(halo_nm=D.HALO['RIE_nm'], sigma_line_cm=sigma_line,
+              halo_nm=D.HALO['GENTLE_nm'], sigma_line_cm=sigma_line)
+    compact_kw = dict(halo_nm=D.HALO['GENTLE_nm'], sigma_line_cm=sigma_line,
                       Cox=transport.COX['HfO2_EOT1p5'], Vov=1.5, Vds=1.0,
                       Lch_nm=300.0, n_it_cm2=st['nit'], eps_env=st['eps'])
 
@@ -450,52 +450,63 @@ def A10_self_consistent(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
     out['Wc_self_consistent'] = _cross(f_sc)
     out['Wc_compact'] = _cross(f_cp)
 
+    # --- how much the critical width depends on the channel length -------
+    # A short channel runs closer to velocity saturation, so its current is
+    # less sensitive to the mobility loss at the edges and the width limit
+    # relaxes.  The critical width quoted throughout is the 300 nm value,
+    # which is the transfer-length structure of the measured work.
+    wc_L = {}
+    for Lx in (50.0, 300.0, 1000.0):
+        Ix = np.array([device.solve_iv(mats['MoS2'], w, nd_ref, Rc_ohm_um=0.0,
+                                       **dict(kw, Lch_nm=Lx))['I_uA_um']
+                       for w in W])
+        wc_L['%d' % Lx] = _cross(Ix / Ix[-1])
+    out['Wc_vs_L'] = wc_L
+
     # --- self-consistent I(W) curves for the measured materials --------
     Rc0 = D.PENA['Rc_ohm_um']
     Wc_curve = np.geomspace(9.0, 1000.0, 22)
     curves = {}
-    # These are the currents the article quotes, so they are computed with a
-    # transparent contact: the contact is treated separately, and as a
-    # resolved barrier rather than a resistance, in A12_quantum.
+    # These are the currents the article quotes against the measurement, so
+    # they carry the measured contact resistance and the 50 nm channel length
+    # of the measured high-kappa devices: the curves and the symbols in
+    # Fig. 2(c) then describe the same device.  The contact is revisited as a
+    # resolved barrier, rather than as a resistance, in A12_quantum.
+    kw_c = dict(kw, Lch_nm=50.0)
     for mname in ('WS2', 'MoS2', 'WSe2'):
         car = 'h' if mname == 'WSe2' else 'e'
         curves[mname] = dict(
             W=Wc_curve.tolist(),
             I=[device.solve_iv(mats[mname], w, nd_ref, carrier=car,
-                               Rc_ohm_um=0.0, **kw)['I_uA_um']
+                               Rc_ohm_um=Rc0, **kw_c)['I_uA_um']
                for w in Wc_curve])
     out['curves'] = curves
 
-    # --- the measured devices, with the contact resistance -------------
-    Rc = Rc0
+    # --- the measured devices ------------------------------------------
+    # Each device is solved on its own gate stack, at its own width and its
+    # own channel length.  Three of the six sit on a 96 nm SiO2 back gate and
+    # three on the 1.5 nm EOT high-kappa stack, and mixing the two would
+    # compare a model on one dielectric against a measurement on another.
     dev = {}
-    for name, w, car, meas in (('MoS2_25nm', 25.0, 'e', D.PENA['Ion']['MoS2_25nm']),
-                               ('MoS2_75nm', 75.0, 'e', D.PENA['Ion']['MoS2_75nm']),
-                               ('WS2_43nm', 43.0, 'e', D.PENA['Ion']['WS2']),
-                               ('WSe2_43nm', 43.0, 'h', D.PENA['Ion']['WSe2'])):
-        mname = name.split('_')[0]
+    for name, mname, car, w, L, stack, meas in D.PENA['devices']:
+        st_d = transport.STACK[stack]
+        kwd = dict(kw)
+        kwd.update(Cox=transport.COX[stack], n_it_cm2=st_d['nit'],
+                   eps_env=st_d['eps'], Lch_nm=L)
         r0 = device.solve_iv(mats[mname], w, nd_ref, carrier=car,
-                             Rc_ohm_um=0.0, **kw)
+                             Rc_ohm_um=0.0, **kwd)
         rc = device.solve_iv(mats[mname], w, nd_ref, carrier=car,
-                             Rc_ohm_um=Rc, **kw)
-        dev[name] = dict(I_ideal=r0['I_uA_um'], I_with_Rc=rc['I_uA_um'],
-                         measured=meas, mu=r0['mu'],
-                         Vds_internal=rc['Vds_internal'])
+                             Rc_ohm_um=Rc0, **kwd)
+        dev[name] = dict(material=mname, carrier=car, W_nm=w, Lch_nm=L,
+                         stack=stack, I_ideal=r0['I_uA_um'],
+                         I_with_Rc=rc['I_uA_um'], measured=meas,
+                         mu=r0['mu'], ratio=r0['I_uA_um'] / meas)
     out['devices'] = dev
-
-    # --- contact resistance implied by the p-type WSe2 measurement -----
-    target = D.PENA['Ion']['WSe2']
-    lo, hi = 0.0, 4.0e4
-    for _ in range(34):
-        mid = 0.5 * (lo + hi)
-        v = device.solve_iv(mats['WSe2'], 43.0, nd_ref, carrier='h',
-                            Rc_ohm_um=mid, **kw)['I_uA_um']
-        if v > target:
-            lo = mid
-        else:
-            hi = mid
-    out['Rc_WSe2_ohm_um'] = float(0.5 * (lo + hi))
-    out['Rc_measured_ohm_um'] = float(Rc)
+    out['ratio_min'] = float(min(d['ratio'] for d in dev.values()
+                                 if d['carrier'] == 'e'))
+    out['ratio_max'] = float(max(d['ratio'] for d in dev.values()
+                                 if d['carrier'] == 'e'))
+    out['Rc_measured_ohm_um'] = float(Rc0)
     return out
 
 
@@ -582,6 +593,7 @@ def A12_quantum(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
         ball[name] = dict(L_nm=Ls.tolist(), T=b.tolist(),
                           L_half_nm=Lhalf,
                           T_at_300nm=float(np.interp(300.0, Ls, b)),
+                          T_at_50nm=float(np.interp(50.0, Ls, b)),
                           I_ballistic=float(quantum.ballistic_current(
                               m, n_ref, 1.0, car)))
     out['ballistic'] = ball
@@ -611,9 +623,12 @@ def A12_quantum(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
     # runs out of transmission, so it saturates.  The gap between the two is
     # the reason a resolved contact is worth solving for.
     mos = mats['MoS2']
-    kw0 = dict(Vov=1.5, Vds=1.0, Lch_nm=300.0, Cox=cox, n_it_cm2=st['nit'],
+    mos_dev = [d for d in D.PENA['devices']
+               if d[1] == 'MoS2' and d[5] == 'HfO2_EOT1p5'][0]
+    W_mos, L_mos = mos_dev[3], mos_dev[4]
+    kw0 = dict(Vov=1.5, Vds=1.0, Lch_nm=L_mos, Cox=cox, n_it_cm2=st['nit'],
                eps_env=st['eps'], carrier='e', nx=48,
-               halo_nm=D.HALO['RIE_nm'], sigma_line_cm=sigma_line)
+               halo_nm=D.HALO['GENTLE_nm'], sigma_line_cm=sigma_line)
     phi_eq = out['phi_from_measured_Rc']['MoS2']
 
     def _vc_e(phi, m=mos, car='e'):
@@ -622,20 +637,23 @@ def A12_quantum(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
                                                       V[1:], car)]) * 1e-2
         return lambda cur: float(np.interp(abs(cur), I, V))
 
-    I_free = device.solve_iv(mos, 25.0, nd_ref, **kw0)['I_uA_um']
-    I_res = device.solve_iv(mos, 25.0, nd_ref,
+    I_free = device.solve_iv(mos, W_mos, nd_ref, **kw0)['I_uA_um']
+    I_res = device.solve_iv(mos, W_mos, nd_ref,
                             Rc_ohm_um=D.PENA['Rc_ohm_um'], **kw0)['I_uA_um']
-    I_bar = device.solve_iv(mos, 25.0, nd_ref, Vc_of_I=_vc_e(phi_eq),
+    I_bar = device.solve_iv(mos, W_mos, nd_ref, Vc_of_I=_vc_e(phi_eq),
                             **kw0)['I_uA_um']
     out['barrier_vs_resistor'] = dict(
+        W_nm=W_mos, Lch_nm=L_mos,
         phi_b_eV=float(phi_eq), R_ohm_um=float(D.PENA['Rc_ohm_um']),
         I_transparent=float(I_free), I_resistor=float(I_res),
         I_barrier=float(I_bar), ratio=float(I_res / I_bar))
 
     # --- the p-type WSe2 contact, resolved --------------------------------
     wse2 = mats['WSe2']
-    kw = dict(Vov=1.5, Vds=1.0, Lch_nm=300.0, Cox=cox, n_it_cm2=st['nit'],
-              eps_env=st['eps'], carrier='h', halo_nm=D.HALO['RIE_nm'],
+    wse_dev = [d for d in D.PENA['devices'] if d[1] == 'WSe2'][0]
+    W_wse, L_wse, meas = wse_dev[3], wse_dev[4], wse_dev[6]
+    kw = dict(Vov=1.5, Vds=1.0, Lch_nm=L_wse, Cox=cox, n_it_cm2=st['nit'],
+              eps_env=st['eps'], carrier='h', halo_nm=D.HALO['GENTLE_nm'],
               sigma_line_cm=sigma_line, nx=48)
 
     def _vc(phi):
@@ -646,14 +664,14 @@ def A12_quantum(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
         return lambda cur: float(np.interp(abs(cur), I_cm, V))
 
     def _I(phi):
-        return device.solve_iv(wse2, 43.0, nd_ref, Vc_of_I=_vc(phi),
+        return device.solve_iv(wse2, W_wse, nd_ref, Vc_of_I=_vc(phi),
                                **kw)['I_uA_um']
 
-    meas = D.PENA['Ion']['WSe2']
     phi_w = float(brentq(lambda p: _I(p) - meas, 0.05, 0.6, xtol=2e-4))
     out['wse2'] = dict(phi_b_eV=phi_w, I_at_phi=float(_I(phi_w)),
+                       W_nm=W_wse, Lch_nm=L_wse,
                        I_transparent=float(device.solve_iv(
-                           wse2, 43.0, nd_ref, **kw)['I_uA_um']),
+                           wse2, W_wse, nd_ref, **kw)['I_uA_um']),
                        measured=float(meas),
                        R_contact_ohm_um=quantum.contact_resistance(
                            wse2, phi_w, lam_c, n_ref, 'h'))

@@ -349,7 +349,7 @@ def fig_transport():
     ax.set_ylim(0, max(cmp_['I_compact']) * 1.42)
     ax.legend(loc='upper left', bbox_to_anchor=(0.02, 0.99), handlelength=1.2,
               labelspacing=0.18, fontsize=6.0)
-    ax.text(0.97, 0.42, 'ratio %.2f\n$W_{\\rm c}$: %.0f vs %.0f nm'
+    ax.text(0.97, 0.42, 'ratio %.2f\n$W_{\\rm c}$: %.1f vs %.1f nm'
             % (cmp_['ratio_mean'], sc['Wc_self_consistent'],
                sc['Wc_compact']),
             transform=ax.transAxes, fontsize=5.9, color=INK2, ha='right',
@@ -381,7 +381,7 @@ in-plane lattice constant used (\AA), $\omega_{E'}$ and $\omega_{A_1'}$ are the
 frozen-phonon zone-centre frequencies (cm$^{-1}$), $\gamma_{E'}$ and
 $\gamma_{A_1'}$ the corresponding mode Gr\"uneisen parameters,
 $\gamma_{\rm LA}$ the acoustic Gr\"uneisen parameter obtained from the strain
-dependence of the elastic constant, and $C_{2D}$ the in-plane elastic constant
+dependence of the elastic constant, and $C_{2D}\equiv C_{11}$ the in-plane elastic constant
 (N/m).  The lattice constant is an input; every other entry is computed in
 this work and none is fitted.}
 \label{tab:dft}
@@ -398,7 +398,7 @@ $\gamma_{A_1'}$ & $\gamma_{\rm LA}$ & $C_{2D}$ \\
     rows = []
     for row in res['nattoo']['rows']:
         mu = row['mu_meas']
-        mus = ('%.2f' % mu) if mu == mu else '---'
+        mus = ('%.2f' % mu) if mu == mu else 'n/a'
         rows.append(r'%s & %.3f & %.3f & $%.1f\times10^{%d}$ & %.1f & %s & %.0f \\'
                     % (row['label'], row['R_sh'], row['R_LA'],
                        row['nd'] / 10 ** int(np.floor(np.log10(row['nd']))),
@@ -515,12 +515,13 @@ def fig_quantum():
         b = q['ballistic'][name]
         ax.semilogx(b['L_nm'], b['T'], color=CMAT[name], lw=1.4,
                     label=LAB[name])
-    ax.axvline(300.0, color=INK2, lw=0.7, ls=':')
+    ax.axvline(50.0, color=INK2, lw=0.7, ls=':')
+    ax.axvline(300.0, color=INK2, lw=0.7, ls='--')
     ax.axhline(0.5, color=INK2, lw=0.7, ls=':')
     ax.set_xlabel(r'Channel length $L$ (nm)')
     ax.set_ylabel(r'channel transmission $\mathcal{T}$')
     ax.set_ylim(0, 1)
-    ax.annotate('measured devices', xy=(300, 0.02), xytext=(0.97, 0.24),
+    ax.annotate('measured devices', xy=(50, 0.02), xytext=(0.97, 0.24),
                 textcoords='axes fraction', ha='right', va='center',
                 fontsize=5.8, color=INK2,
                 arrowprops=dict(arrowstyle='-', lw=0.5, color=INK2,

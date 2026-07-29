@@ -99,6 +99,26 @@ def main():
     cmd('NaiveTwoLA', '%.1f' % abs(kv['naive_strain_only_pct']
                                    * kv['dw2LA_deps']))
 
+    # ---- the one direct biaxial measurement of an acoustic overtone
+    mbw = D.MICHAIL_BIAX['WSe2']
+    cmd('GammaLAmeasWSe', '%.2f' % mbw['gLA'])
+    cmd('GammaLAmeasWSeErr', '%.2f' % mbw['gLA_e'])
+    cmd('GammaAmeasWSe', '%.2f' % mbw['gA'])
+    cmd('dwTwoLAmeasWSe', '%.1f' % abs(mbw['dw2LA']))
+    cmd('dwAmeasWSe', '%.1f' % abs(mbw['dwA']))
+    cmd('LeverRatioMeasWSe', '%.1f' % (abs(mbw['dw2LA']) / abs(mbw['dwA'])))
+    _gLwse = mats['WSe2'].dft.get('gamma_LA', float('nan'))
+    _wLwse = mats['WSe2'].wLA
+    _gAwse, _wAwse = mats['WSe2'].gA, mats['WSe2'].wA
+    cmd('LeverRatioPredWSe', '%.1f' % (2.0 * _gLwse * _wLwse
+                                       / (_gAwse * _wAwse)))
+    cmd('GammaLApredWSe', '%.2f' % _gLwse)
+    cmd('dwAmeasMoS', '%.1f' % abs(D.MICHAIL_BIAX['MoS2']['dwA']))
+    cmd('GammaAmeasMoS', '%.2f' % D.MICHAIL_BIAX['MoS2']['gA'])
+    cmd('GammaEmeasMoS', '%.2f' % D.MICHAIL_BIAX['MoS2']['gE'])
+    cmd('StrainTransferLo', '%.0f' % 87.0)
+    cmd('StrainTransferHi', '%.0f' % 98.0)
+
     # ---- Peng
     pg = r['peng']
     cmd('GBstrain', '%.2f' % abs(pg['gb_strain_pct']))
@@ -138,7 +158,7 @@ def main():
         43, W, np.array(rb['curves']['WS2']['I'])))
     cmd('IonWSeTwo', '%.0f' % np.interp(
         43, W, np.array(rb['curves']['WSe2']['I'])))
-    cmd('WcRIE', '%.0f' % rb['halo']['RIE']['Wc'])
+    cmd('WcGentle', '%.0f' % rb['halo']['GENTLE']['Wc'])
     cmd('WcHIM', '%.0f' % rb['halo']['HIM']['Wc'])
     for tag, key in (('SiOThreeH', 'SiO2_300nm'), ('SiONinety', 'SiO2_90nm'),
                      ('SiOThirty', 'SiO2_30nm'), ('HfO', 'HfO2_EOT1p5')):
@@ -146,8 +166,6 @@ def main():
         cmd('dVT' + tag, '%.2f' % rb['cox'][key]['dVT_25nm'])
     for m in MATERIALS:
         cmd('Wc' + m.replace('2', 'Two'), '%.0f' % rb['Wc'][m])
-    cmd('dVTLiu', '%.2f' % transport.threshold_shift(
-        rb['sigma_line_cm'], 200.0, transport.COX['SiO2_300nm']))
 
     # ---- material constants
     for m in MATERIALS:
@@ -177,20 +195,39 @@ def main():
     cmd('ScCq', '%.0f' % (1e6 * v['Cq_F_cm2']))
     cmd('ScCqCorr', '%.1f' % (100 * v['quantum_capacitance_correction']))
     cmd('ScRatio', '%.2f' % sc['compare']['ratio_mean'])
+    # triode factor the square-law compact form leaves out
+    cmd('TriodeFactor', '%.2f' % ((rb['Vov'] - 0.5) / rb['Vov']))
     cmd('ScRatioSpread', '%.2f' % sc['compare']['ratio_spread'])
-    cmd('WcSelfCons', '%.0f' % sc['Wc_self_consistent'])
-    cmd('WcCompact', '%.0f' % sc['Wc_compact'])
+    cmd('WcSelfCons', '%.1f' % sc['Wc_self_consistent'])
+    cmd('WcCompact', '%.1f' % sc['Wc_compact'])
     cmd('WcModelDiff', '%.0f' % (100 * abs(sc['Wc_self_consistent']
                                            - sc['Wc_compact'])
                                  / sc['Wc_compact']))
-    for key, tag in (('MoS2_25nm', 'MoSTwentyfive'),
-                     ('MoS2_75nm', 'MoSSeventyfive'),
-                     ('WS2_43nm', 'WSTwo'), ('WSe2_43nm', 'WSeTwo')):
+    for key, tag in (('MoS2_50nm_HfO2', 'MoSFiftyHK'),
+                     ('WS2_50nm_HfO2', 'WSTwo'),
+                     ('WSe2_50nm_HfO2', 'WSeTwo')):
         d = sc['devices'][key]
-        cmd('IonSc' + tag, '%.0f' % d['I_with_Rc'])
         cmd('IonScIdeal' + tag, '%.0f' % d['I_ideal'])
+        cmd('IonSc' + tag, '%.0f' % d['I_with_Rc'])
         cmd('MuSc' + tag, '%.0f' % d['mu'])
-        cmd('IonScFrac' + tag, '%.2f' % (d['I_with_Rc'] / d['measured']))
+        cmd('IonMeas' + tag, '%.0f' % d['measured'])
+        cmd('IonScFrac' + tag, '%.2f' % d['ratio'])
+    for Lx, tag in (('50', 'Short'), ('300', 'Mid'), ('1000', 'Long')):
+        cmd('WcL' + tag, '%.0f' % sc['Wc_vs_L'][Lx])
+    cmd('WMeasHK', '%.0f' % sc['devices']['MoS2_50nm_HfO2']['W_nm'])
+    cmd('LMeasHK', '%.0f' % sc['devices']['MoS2_50nm_HfO2']['Lch_nm'])
+    cmd('IonScFracMin', '%.2f' % sc['ratio_min'])
+    cmd('IonScFracMax', '%.2f' % sc['ratio_max'])
+    # Deviation of the model from the two n-type measurements, with the
+    # measured contact resistance included, which is what the text quotes.
+    _rc = [d['I_with_Rc'] / d['measured'] for d in sc['devices'].values()
+           if d['carrier'] == 'e']
+    _dev = sorted(100.0 * abs(x - 1.0) for x in _rc)
+    cmd('IonScDevMin', '%.0f' % _dev[0])
+    cmd('IonScDevMax', '%.0f' % _dev[1])
+    cmd('IonScSense', 'above' if min(_rc) > 1.0 else 'below')
+    _w = sc['devices']['WSe2_50nm_HfO2']
+    cmd('IonScFracWSe', '%.1f' % (_w['I_with_Rc'] / _w['measured']))
     # ---- energy-resolved Boltzmann mobility
     er = r['energy_resolved']
     cmd('ErVerify', _fmt_sci(max(er['verify']['rel_err'], 1e-17)))
@@ -229,6 +266,10 @@ def main():
                                           for b in bal.values())))
     cmd('BallistMax', '%.1f' % (100 * max(b['T_at_300nm']
                                           for b in bal.values())))
+    cmd('BallistFiftyMin', '%.0f' % (100 * min(b['T_at_50nm']
+                                               for b in bal.values())))
+    cmd('BallistFiftyMax', '%.0f' % (100 * max(b['T_at_50nm']
+                                               for b in bal.values())))
     rq = q['contact_quantum']
     cmd('RqMin', '%.0f' % min(x['R_quantum'] for x in rq.values()))
     cmd('RqMax', '%.0f' % max(x['R_quantum'] for x in rq.values()))
@@ -248,9 +289,7 @@ def main():
     cmd('IWSePhi', '%.0f' % w['I_at_phi'])
     cmd('RcWSePhi', '%.0f' % w['R_contact_ohm_um'])
 
-    cmd('RcWSeTwo', '%.1f' % (sc['Rc_WSe2_ohm_um'] / 1000.0))
     cmd('RcMeas', '%.0f' % sc['Rc_measured_ohm_um'])
-    cmd('RcRatio', '%.0f' % (sc['Rc_WSe2_ohm_um'] / sc['Rc_measured_ohm_um']))
 
     # k-mesh cross-check of the two strain derivatives that matter
     kc = os.path.join(ROOT, 'dft', 'kcheck_summary.json')
@@ -267,6 +306,7 @@ def main():
     cmd('NitSiO', _fmt_sci(transport.N_IT_SIO2))
     cmd('NitHfO', _fmt_sci(transport.N_IT_HFO2))
     cmd('Udefect', '%.3f' % mats['MoS2'].Udef)
+    cmd('LambdaAOne', '%.1f' % abs(kv['dwA_dn']))
     cmd('HaloContrast', '%.0f' % 20.0)
     cmd('CAmeas', '%.2f' % D.MIGNUZZI['C_A'])
     cmd('CAmeasErr', '%.2f' % D.MIGNUZZI['C_A_err'])
@@ -274,7 +314,7 @@ def main():
     from .materials import all_materials as _am
     _m = mats['MoS2']
     _st = transport.STACK['HfO2_EOT1p5']
-    _base = dict(halo_nm=D.HALO['RIE_nm'], sigma_line_cm=rb['sigma_line_cm'],
+    _base = dict(halo_nm=D.HALO['GENTLE_nm'], sigma_line_cm=rb['sigma_line_cm'],
                  Cox=transport.COX['HfO2_EOT1p5'], Vov=rb['Vov'], Vds=1.0,
                  Lch_nm=300.0, n_it_cm2=_st['nit'], eps_env=_st['eps'])
     _lo, _hi = na['rows'][1]['nd'], na['rows'][2]['nd']
@@ -284,9 +324,17 @@ def main():
     _Wlo = float(transport.critical_width(_m, _lo, **_base))
     _Whi = float(transport.critical_width(_m, _hi, **_base))
     cmd('WcDriftFilm', '%.0f' % (100.0 * abs(_Whi - _Wlo) / _Wlo))
-    cmd('IonWSover', '%.0f' % (100.0 * (np.interp(
-        43, W, np.array(rb['curves']['WS2']['I'])) - D.PENA['Ion']['WS2'])
-        / D.PENA['Ion']['WS2']))
+    # threshold shift predicted at the widths where the multilayer ribbons of
+    # Liu et al. were measured: the onset width and the narrowest device
+    _liu = D.LIU2012
+    cmd('dVTLiuOnset', '%.1f' % transport.threshold_shift(
+        rb['sigma_line_cm'], _liu['W_onset_nm'], transport.COX['SiO2_300nm']))
+    cmd('dVTLiuNarrow', '%.0f' % transport.threshold_shift(
+        rb['sigma_line_cm'], _liu['narrowest_nm'], transport.COX['SiO2_300nm']))
+    cmd('LiuOnset', '%.0f' % _liu['W_onset_nm'])
+    cmd('LiuNarrow', '%.0f' % _liu['narrowest_nm'])
+    cmd('LiuTotal', '%.0f' % _liu['dVT_total_V'])
+    cmd('LiuThick', '%.0f' % min(_liu['thickness_nm']))
 
     out = os.path.join(ROOT, 'paper', 'numbers.tex')
     os.makedirs(os.path.dirname(out), exist_ok=True)

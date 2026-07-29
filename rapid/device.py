@@ -344,14 +344,30 @@ def solve_iv(mat: Material, W_nm, nd_bulk, Vov=1.5, Vds=1.0, Lch_nm=300.0,
     # the Schottky barrier in quantum.py.  The channel then sees Vds less
     # twice that drop, and the same bisection closes the loop.
 
-    def channel(vd):
-        """Terminal current in A/cm for an internal drain bias vd."""
+    def _solve_at(vd):
         ds.set_parameter(device=DEVICE, name='Vsrc', value=0.0)
         ds.set_parameter(device=DEVICE, name='Vdrn', value=float(vd))
-        _seed(mat, Vov_eff, vd, Cox, carrier)
         with _quiet():
             ds.solve(type='dc', absolute_error=1e-12, relative_error=1e-9,
                      maximum_iterations=60)
+
+    def channel(vd):
+        """Terminal current in A/cm for an internal drain bias vd.
+
+        The seeded Newton solve converges in one shot for almost every bias.
+        A short channel at a large drain bias can still overshoot on the first
+        step, so a failure falls back to bias continuation: the drain is
+        ramped from zero in equal steps, each solve starting from the
+        converged profile of the previous one.
+        """
+        try:
+            _seed(mat, Vov_eff, vd, Cox, carrier)
+            _solve_at(vd)
+        except Exception:
+            _seed(mat, Vov_eff, 0.0, Cox, carrier)
+            _solve_at(0.0)
+            for f in np.linspace(0.0, 1.0, 21)[1:]:
+                _solve_at(f * vd)
         return abs(float(ds.get_contact_current(device=DEVICE,
                                                 contact='drain',
                                                 equation='ContinuityEq')))
@@ -387,18 +403,19 @@ def solve_iv(mat: Material, W_nm, nd_bulk, Vov=1.5, Vds=1.0, Lch_nm=300.0,
     except Exception:
         I, ok = 0.0, False
 
-    x = np.array(ds.get_node_model_values(device=DEVICE, region=REGION,
-                                          name='x'))
+    def _profile(name):
+        try:
+            return list(ds.get_node_model_values(device=DEVICE, region=REGION,
+                                                 name=name))
+        except Exception:
+            return []
+
+    x = np.array(_profile('x'))
     return dict(I_uA_um=float(I * 1e2),              # A/cm -> uA/um
                 mu=mu, dVT=dVT, Vov_eff=Vov_eff,
                 Vds_internal=float(vd), iterations=it + 1, converged=ok,
                 x_nm=(x * 1e7).tolist(),
-                Psi=list(ds.get_node_model_values(device=DEVICE,
-                                                  region=REGION, name='Psi')),
-                Vqf=list(ds.get_node_model_values(device=DEVICE,
-                                                  region=REGION, name='Vqf')),
-                ns=list(ds.get_node_model_values(device=DEVICE,
-                                                 region=REGION, name='ns')))
+                Psi=_profile('Psi'), Vqf=_profile('Vqf'), ns=_profile('ns'))
 
 
 # ---------------------------------------------------------------------------

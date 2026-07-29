@@ -394,8 +394,8 @@ def ribbon_mobility(mat: Material, W_nm, nd_bulk, nd_edge=None, halo_nm=5.0,
 
 # gate stacks: oxide capacitance (F/cm^2), interface trap density (cm^-2) and
 # the dielectric environment seen by the monolayer.
-COX = dict(SiO2_300nm=1.15e-8, SiO2_90nm=3.84e-8, SiO2_30nm=1.15e-7,
-           HfO2_EOT1p5=2.30e-6)
+COX = dict(SiO2_300nm=1.15e-8, SiO2_90nm=3.84e-8,
+           SiO2_30nm=1.15e-7, HfO2_EOT1p5=2.30e-6)
 STACK = {
     'SiO2_300nm': dict(nit=N_IT_SIO2, eps=(EPS_SIO2 + EPS_TOP) / 2.0),
     'SiO2_90nm': dict(nit=N_IT_SIO2, eps=(EPS_SIO2 + EPS_TOP) / 2.0),

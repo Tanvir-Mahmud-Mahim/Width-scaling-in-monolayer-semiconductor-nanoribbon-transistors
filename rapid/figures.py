@@ -226,14 +226,18 @@ def fig1(res):
     ax = fig.add_subplot(gs[0])
     gE = [mats[m].gE for m in MATERIALS]
     gA = [mats[m].gA for m in MATERIALS]
-    ax.bar(x - 0.19, gE, 0.33, color=CAT[0], lw=0, label=r"$E^{\prime}$")
-    ax.bar(x + 0.19, gA, 0.33, color=CAT[1], lw=0, label=r"$A_1^{\prime}$")
+    gL = [mats[m].dft.get('gamma_LA', np.nan) for m in MATERIALS]
+    ax.bar(x - 0.26, gE, 0.25, color=CAT[0], lw=0, label=r"$E^{\prime}$")
+    ax.bar(x, gA, 0.25, color=CAT[1], lw=0, label=r"$A_1^{\prime}$")
+    ax.bar(x + 0.26, gL, 0.25, color=CAT[2], lw=0, label='LA(M)')
     mb = D.MICHAIL_BIAX
-    # Direct biaxial-strain measurements exist only for MoS2 and for the
-    # A1' mode of WSe2 (Michail 2024); nothing is plotted where none exists.
-    pts = [(0 - 0.19, mb['MoS2']['gE'], mb['MoS2']['gE_e']),
-           (0 + 0.19, mb['MoS2']['gA'], mb['MoS2']['gA_e']),
-           (3 + 0.19, mb['WSe2']['gA'], mb['WSe2']['gA_e'])]
+    # Direct biaxial-strain measurements exist for both optical modes of
+    # MoS2 and for the A1' and the 2LA overtone of WSe2 (Michail 2024);
+    # nothing is plotted where no measurement exists.
+    pts = [(0 - 0.26, mb['MoS2']['gE'], mb['MoS2']['gE_e']),
+           (0.0, mb['MoS2']['gA'], mb['MoS2']['gA_e']),
+           (3.0, mb['WSe2']['gA'], mb['WSe2']['gA_e']),
+           (3 + 0.26, mb['WSe2']['gLA'], mb['WSe2']['gLA_e'])]
     for px, py, pe in pts:
         ax.errorbar([px], [py], yerr=[pe], fmt='o', ms=3.3, color=INK,
                     mfc='white', mew=0.9, lw=0.9, zorder=6)
@@ -244,7 +248,7 @@ def fig1(res):
     ax.set_xticks(x)
     ax.set_xticklabels(xt, rotation=30, ha='right')
     ax.set_ylabel(r'Grüneisen parameter $\gamma$')
-    ax.set_ylim(0, 1.72)
+    ax.set_ylim(0, 4.6)
     ax.legend(h, l, loc='upper right', bbox_to_anchor=(0.99, 0.99),
               handlelength=0.85, handletextpad=0.35, labelspacing=0.18)
     _panel(ax, '(a)')
@@ -286,7 +290,7 @@ def fig1(res):
     ax.set_ylim(0, max(vals) * 1.72)
     ax.legend(loc='upper left', bbox_to_anchor=(0.03, 0.99),
               handletextpad=0.35)
-    _note(ax, 0.05, 0.82, 'lever arms differ\nby %.1f times'
+    _note(ax, 0.05, 0.82, 'computed lever arms\ndiffer by %.1f times'
           % (vals[1] / vals[0]))
     _panel(ax, '(c)')
 
@@ -326,17 +330,21 @@ def fig2(res):
     g = np.array([d['gamma'] for d in kr])
     ne = np.array([d['edge_n'] for d in kr]) / 1e12
     ee = np.array([d['edge_eps'] for d in kr])
-    ax.axvspan(1.0, 2.6, color=MUTED, alpha=0.14, lw=0)
     ax.plot(g, ne, color=CAT[1], lw=1.5,
             label=r'charge ($10^{12}$ cm$^{-2}$)')
     ax.plot(g, ee * 10, color=CAT[0], lw=1.5, ls='--', label='strain (0.1 %)')
     ax.set_xlabel(r'assumed $\gamma_{\rm LA}$')
     ax.set_ylabel('recovered edge state')
-    ax.set_xlim(0.4, 2.6)
+    ax.set_xlim(0.3, 3.3)
     ax.set_ylim(-0.8, 5.2)
     ax.legend(loc='upper left', bbox_to_anchor=(0.02, 0.99),
-              handlelength=1.0, labelspacing=0.20)
-    _note(ax, 0.965, 0.40, 'shaded: plausible\nrange for MoS$_2$', ha='right')
+              handlelength=0.9, labelspacing=0.18, fontsize=5.9)
+    # dotted lines: the value measured for WSe2 and the value computed for
+    # MoS2; both are named in the caption rather than in the panel, which is
+    # too narrow to carry two labels without a collision
+    ax.axvline(D.MICHAIL_BIAX['WSe2']['gLA'], color=INK2, lw=0.7, ls=':')
+    ax.axvline(mats['MoS2'].dft.get('gamma_LA', np.nan), color=INK2,
+               lw=0.7, ls=':')
     _panel(ax, '(a)')
 
     # ---- (b) threshold shift versus width -----------------------------
@@ -367,27 +375,27 @@ def fig2(res):
 
     # ---- (c) on-current against width ---------------------------------
     ax = fig.add_subplot(gs[2])
-    # the self-consistent solve with a transparent contact, which is what the
-    # text quotes; the contact is handled separately as a resolved barrier
+    # the self-consistent solve including the measured contact resistance,
+    # which is what the text quotes; the contact is revisited separately as a
+    # resolved barrier
     sc = res['self_consistent']['curves']
     Wl = np.array(sc['MoS2']['W'])
     for m in ['WS2', 'MoS2', 'WSe2']:
         ax.semilogx(Wl, np.array(sc[m]['I']), color=CMAT[m], lw=1.4,
                     label=LAB[m])
-    # only the high-kappa-gated measurements are shown, because the curves
-    # are computed for that stack; the 43 nm MoS2 device of the same work was
-    # gated through SiO2 and is not comparable here
-    pen = D.PENA['Ion']
-    ax.plot([25, 75], [pen['MoS2_25nm'], pen['MoS2_75nm']], 'o', ms=4.4,
-            color=CMAT['MoS2'], mfc='white', mew=1.1, zorder=6)
-    ax.plot([43], [pen['WS2']], 's', ms=4.2, color=CMAT['WS2'], mfc='white',
-            mew=1.1, zorder=6)
-    ax.plot([43], [pen['WSe2']], '^', ms=4.6, color=CMAT['WSe2'], mfc='white',
-            mew=1.1, zorder=6)
+    # Only the high-kappa-gated measurements are shown, because the curves are
+    # computed for that stack at the 1.5 V overdrive it is operated at.  The
+    # back-gated devices of the same work sit on a 96 nm SiO2 oxide at an
+    # overdrive of tens of volts that is not reported per device, so they
+    # cannot be placed on this axis without assuming a bias.
+    mk = {'MoS2': 'o', 'WS2': 's', 'WSe2': '^'}
+    for name, mname, car, w, L, stack, meas in D.PENA['devices']:
+        ax.plot([w], [meas], mk[mname], ms=4.4, color=CMAT[mname],
+                mfc='white', mew=1.1, zorder=6)
     ax.set_xlabel('Nanoribbon width (nm)')
     ax.set_ylabel(r'$I_{\rm on}/W$ ($\mu$A $\mu$m$^{-1}$)')
     ax.set_xlim(9, 1000)
-    ax.set_ylim(0, 600)
+    ax.set_ylim(0, 700)
     h, l = ax.get_legend_handles_labels()
     h.append(Line2D([], [], marker='o', ls='', ms=4.0, color=INK,
                     mfc='white', mew=1.0))
@@ -449,9 +457,9 @@ def fig3(res):
         ax.loglog(halos, vals, color=CAT[i], lw=1.3, label=names[tag])
     # the two patterning processes are marked with short tags and spelled out
     # in the caption, which keeps the labels clear of the curves
-    for xh, txt, off, hh in ((D.HALO['RIE_nm'], 'RIE', (5.5, -7.0), 'left'),
+    for xh, txt, off, hh in ((D.HALO['GENTLE_nm'], r'XeF$_2$', (5.5, -7.0), 'left'),
                              (D.HALO['HIM_nm'], 'HIM', (-2.5, -15.0), 'right')):
-        yv = rb['halo']['RIE' if xh < 50 else 'HIM']['Wc']
+        yv = rb['halo']['GENTLE' if xh < 50 else 'HIM']['Wc']
         ax.plot(xh, yv, 'o', ms=4.6, color=INK, mfc='white', mew=1.0,
                 zorder=6)
         ax.annotate(txt, xy=(xh, yv), xytext=off,
@@ -533,7 +541,7 @@ def fig3(res):
     nds = [1e12, 1e13, 3e13]
     labs = [r'$10^{12}$', r'$10^{13}$', r'$3\times10^{13}$']
     st = transport.STACK['HfO2_EOT1p5']
-    base = dict(halo_nm=D.HALO['RIE_nm'], sigma_line_cm=rb['sigma_line_cm'],
+    base = dict(halo_nm=D.HALO['GENTLE_nm'], sigma_line_cm=rb['sigma_line_cm'],
                 Cox=transport.COX['HfO2_EOT1p5'], Vov=rb['Vov'], Vds=1.0,
                 Lch_nm=300.0, n_it_cm2=st['nit'], eps_env=st['eps'])
     top = 0.0
