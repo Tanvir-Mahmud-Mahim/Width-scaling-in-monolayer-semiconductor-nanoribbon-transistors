@@ -66,12 +66,14 @@ rapid/          the analysis package
   datasets.py     every published measurement used, with its source
   spectra.py      the forward model and its analytic Jacobian
   adjoint.py      adjoint-state inversion and its three verification tests
-  transport.py    scattering channels, sheet mobility, nanoribbon device layer
+  transport.py    scattering channels, energy-resolved Boltzmann mobility,
+                  nanoribbon device layer
+  device.py       self-consistent Poisson and drift-diffusion device solve
+  quantum.py      NEGF transmission, Schottky contact, Landauer current
   analysis.py     every numerical experiment reported in the article
   figures.py      main-text figures
   device_fig.py   the three-dimensional device schematic
   supplement.py   supplementary figures and tables
-  device.py       self-consistent Poisson and drift-diffusion device solve
   numbers.py      exports every quoted number as a LaTeX macro
 
 benchmarks/     published measurements as flat CSV, one file per source
@@ -160,17 +162,35 @@ finite difference of the full objective.
 **Transport.** Phonon, neutral point-defect and screened interface-charge
 scattering combined by Matthiessen's rule, plus diffuse edge scattering and a
 damage halo treated as two parallel conductors, closed with the measured
-monolayer MoS₂ saturation velocity. Every current that the article compares
-with measurement comes from a self-consistent solve of the channel: the surface
-band bending and the electron quasi-Fermi potential are carried as coupled
-fields, so the quantum capacitance, the fall of the channel charge towards the
-drain and the feedback of a series contact resistance all enter without
-approximation. The coupled system is solved by Newton's method in
-[DEVSIM](https://devsim.org), and four checks run with the code: the band
-bending against an independent bisection solve of the gate balance, the
-residual of the gate balance itself, source-to-drain current continuity, and
-the long-channel square law once the quantum capacitance is placed in series
-with the oxide. The compact expression is retained only to sweep the design map and
+monolayer MoS₂ saturation velocity. The mobility comes from the full Boltzmann
+integral, carrying a relaxation time at every carrier energy, which matters
+because the screened Coulomb rate follows the carrier wavevector and the
+diffuse edge scattering rate follows the carrier speed. Every current the
+article compares with measurement then comes from a self-consistent solve of
+the channel: the surface band bending and the electron quasi-Fermi potential
+are carried as coupled fields, so the quantum capacitance and the fall of the
+channel charge towards the drain enter without approximation. The coupled
+system is solved by Newton's method in [DEVSIM](https://devsim.org), and four
+checks run with the code: the band bending against an independent bisection
+solve of the gate balance, the residual of the gate balance itself,
+source-to-drain current continuity, and the long-channel square law once the
+quantum capacitance is placed in series with the oxide.
+
+**Quantum transport.** `rapid/quantum.py` removes what a semiclassical solve
+cannot describe. The current is written as a two-dimensional Landauer
+integral; the channel enters through a transmission λ/(λ+L) built from the
+same energy-resolved relaxation times, and the contact through the
+transmission of the metal-to-monolayer Schottky barrier, obtained from a
+non-equilibrium Green's function solution of the effective-mass equation, so
+thermionic emission and tunnelling are one calculation. Four checks run with
+the code: the transmission of a rectangular barrier against the closed-form
+result, a flat potential transmitting to one, the non-degenerate ballistic
+limit against q n_s √(k_BT/2πm\*), and the long-channel limit against the
+Boltzmann conductivity. That last identity is what fixes λ = (π/2)vτ, with no
+freedom left. The 300 nm channels of the measured devices have a transmission
+of 1 to 2 %, so they are firmly diffusive; a barrier-free contact to a 2D
+channel cannot go below 28 to 39 Ω·µm; and the p-type WSe₂ current corresponds
+to a barrier of 0.26 eV. The compact expression is retained only to sweep the design map and
 the critical-width scans; it is high by a nearly constant factor 1.56, and the
 critical width, being a ratio, differs between the two models by 7 %. Exactly two constants are calibrated
 rather than computed or measured, both once and then held fixed: the neutral
