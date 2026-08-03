@@ -41,9 +41,20 @@ FS_ANN = 6.4          # in-panel annotation
 FS_LEG = 6.4          # legend
 FS_TAG = 8.4          # panel letter
 
+# Times New Roman throughout, with metric-compatible fallbacks.  Genuine Times
+# New Roman is a Microsoft font and cannot be redistributed, so the list falls
+# back to Tinos and then Nimbus Roman, both of which are metrically identical
+# clones: the glyph advance widths match, so a figure built on either lays out
+# exactly as it would with the real font, and a machine that does have Times
+# New Roman installed picks it up first without any change here.  STIX is the
+# matching math face, drawn on Times proportions, so symbols and text sit
+# together instead of clashing the way DejaVu math over a Times body would.
+TIMES = ['Times New Roman', 'Tinos', 'Nimbus Roman', 'Liberation Serif',
+         'DejaVu Serif']
+
 plt.rcParams.update({
-    'font.family': 'serif', 'font.serif': ['DejaVu Serif'],
-    'mathtext.fontset': 'dejavuserif',
+    'font.family': 'serif', 'font.serif': TIMES,
+    'mathtext.fontset': 'stix',
     'font.size': 7.2, 'axes.labelsize': 7.5, 'axes.titlesize': 7.6,
     'xtick.labelsize': 6.8, 'ytick.labelsize': 6.8, 'legend.fontsize': FS_LEG,
     'axes.linewidth': 0.6, 'xtick.major.width': 0.6, 'ytick.major.width': 0.6,
@@ -52,13 +63,22 @@ plt.rcParams.update({
     'xtick.minor.size': 1.4, 'ytick.minor.size': 1.4,
     'xtick.direction': 'in', 'ytick.direction': 'in',
     'xtick.top': True, 'ytick.right': True,
-    'lines.linewidth': 1.3, 'axes.edgecolor': INK2, 'axes.labelcolor': INK,
-    'text.color': INK, 'xtick.color': INK2, 'ytick.color': INK2,
+    # Tick marks and the frame they sit on are black, which is the convention
+    # the journal's own figures follow.  Tick labels stay at INK, a near-black
+    # that reads identically in print but keeps text visually distinct from
+    # rules.
+    'lines.linewidth': 1.3, 'axes.edgecolor': 'black', 'axes.labelcolor': INK,
+    'text.color': INK, 'xtick.color': 'black', 'ytick.color': 'black',
+    'xtick.labelcolor': INK, 'ytick.labelcolor': INK,
     'grid.color': GRID, 'grid.linewidth': 0.45, 'legend.frameon': False,
     'legend.handlelength': 1.1, 'legend.handletextpad': 0.5,
     'legend.labelspacing': 0.30, 'legend.borderpad': 0.15,
     'legend.borderaxespad': 0.25, 'legend.columnspacing': 0.9,
     'figure.dpi': 400, 'savefig.dpi': 400, 'savefig.bbox': 'standard',
+    # Embed real TrueType outlines rather than Type 3 bitmapped subsets.
+    # Publishers routinely reject Type 3, and TrueType keeps the text
+    # selectable and searchable in the submitted PDF.
+    'pdf.fonttype': 42, 'ps.fonttype': 42,
 })
 
 FULL_W = 6.85
@@ -523,9 +543,12 @@ def fig3(res):
     for (lab, v), p in zip(items, pos):
         ax.axhline(v, color=INK, lw=0.45, alpha=0.45)
         yv = 10.0 ** p
-        ax.plot([Wg[-1] * 0.965, Wg[-1] * 0.965], [v, yv], color=INK,
+        ax.plot([Wg[-1] * 0.955, Wg[-1] * 0.955], [v, yv], color=INK,
                 lw=0.45, alpha=0.45)
-        ax.text(Wg[-1] * 0.925, yv, short.get(lab, lab), fontsize=5.4,
+        # pulled in from the right spine so the white halo behind the glyphs
+        # clears the frame; Times is narrower than the old face, but the halo
+        # is what sets the clearance, not the glyph width
+        ax.text(Wg[-1] * 0.865, yv, short.get(lab, lab), fontsize=5.4,
                 color=INK, ha='right', va='center', zorder=8,
                 path_effects=stroke)
     cb = fig.colorbar(pcm, ax=ax, fraction=0.050, pad=0.045)
