@@ -31,7 +31,7 @@ CAT = ['#0072B2', '#D55E00', '#009E73', '#7A5195', '#CC79A7', '#8C6D1F']
 CMAT = dict(zip(MATERIALS, CAT))
 LAB = {'MoS2': r'MoS$_2$', 'WS2': r'WS$_2$', 'MoSe2': r'MoSe$_2$',
        'WSe2': r'WSe$_2$'}
-INK, INK2, MUTED, GRID = '#1a1a1a', '#5c5c5c', '#8a8a8a', '#dedede'
+INK, INK2, MUTED, GRID = '#000000', '#5c5c5c', '#8a8a8a', '#dedede'
 SEQ = LinearSegmentedColormap.from_list(
     'seq', ['#f2f7fb', '#a8cee4', '#4f97c4', '#0072B2', '#01456d'])
 DIV = LinearSegmentedColormap.from_list(
@@ -63,13 +63,13 @@ plt.rcParams.update({
     'xtick.minor.size': 1.4, 'ytick.minor.size': 1.4,
     'xtick.direction': 'in', 'ytick.direction': 'in',
     'xtick.top': True, 'ytick.right': True,
-    # Tick marks and the frame they sit on are black, which is the convention
-    # the journal's own figures follow.  Tick labels stay at INK, a near-black
-    # that reads identically in print but keeps text visually distinct from
-    # rules.
-    'lines.linewidth': 1.3, 'axes.edgecolor': 'black', 'axes.labelcolor': INK,
-    'text.color': INK, 'xtick.color': 'black', 'ytick.color': 'black',
-    'xtick.labelcolor': INK, 'ytick.labelcolor': INK,
+    # Every rule and every piece of neutral text is true black: frame, tick
+    # marks, tick labels, axis labels and the default text colour.  Only
+    # deliberately coloured items, series labels and leader lines, depart from
+    # it.
+    'lines.linewidth': 1.3, 'axes.edgecolor': 'black', 'axes.labelcolor': 'black',
+    'text.color': 'black', 'xtick.color': 'black', 'ytick.color': 'black',
+    'xtick.labelcolor': 'black', 'ytick.labelcolor': 'black',
     'grid.color': GRID, 'grid.linewidth': 0.45, 'legend.frameon': False,
     'legend.handlelength': 1.1, 'legend.handletextpad': 0.5,
     'legend.labelspacing': 0.30, 'legend.borderpad': 0.15,

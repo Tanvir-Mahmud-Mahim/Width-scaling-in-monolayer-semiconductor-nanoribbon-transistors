@@ -335,6 +335,9 @@ def main():
     cmd('LiuNarrow', '%.0f' % _liu['narrowest_nm'])
     cmd('LiuTotal', '%.0f' % _liu['dVT_total_V'])
     cmd('LiuThick', '%.0f' % min(_liu['thickness_nm']))
+    # that work measures three bodies, so the text quotes the range rather
+    # than the thinnest one alone
+    cmd('LiuThickHi', '%.0f' % max(_liu['thickness_nm']))
 
     out = os.path.join(ROOT, 'paper', 'numbers.tex')
     os.makedirs(os.path.dirname(out), exist_ok=True)

@@ -49,7 +49,7 @@ from matplotlib.patches import (Circle, FancyArrowPatch, Polygon, Rectangle,
 BLUE = '#0072B2'
 VERM = '#D55E00'
 GREEN = '#009E73'
-INK = '#1a1a1a'
+INK = '#000000'
 INK2 = '#555555'
 
 # ---------------------------------------------------------------------------
@@ -530,8 +530,8 @@ def draw_cross_section(ax, rect=(0.012, 0.012, 0.404, 0.372), fs=5.2):
     bax.plot([0.055, w - 0.055], [Eav, Eav], color=INK, lw=0.45,
              ls=(0, (2.4, 1.5)), zorder=3)
     bax.annotate('', xy=(0.30, Eav), xytext=(0.30, 0.0),
-                 arrowprops=dict(arrowstyle='<|-|>', lw=0.42, color=INK,
-                                 mutation_scale=2.2, shrinkA=0, shrinkB=0),
+                 arrowprops=dict(arrowstyle='|-|', lw=0.45, color=INK,
+                                 mutation_scale=1.5, shrinkA=0, shrinkB=0),
                  zorder=5)
     # the label goes into the clear space above the average, with a leader, so
     # it cannot sit on top of the dashed line it belongs to
@@ -569,7 +569,7 @@ def draw_cross_section(ax, rect=(0.012, 0.012, 0.404, 0.372), fs=5.2):
                                 edgecolor=ec, lw=0.32, zorder=4))
     cax.text(XTAG, y_ch + 0.5 * t, 'monolayer', fontsize=fs,
              color='#1f6ea8', ha='left', va='center')
-    cax.plot([w + 0.01, XTAG - 0.04], [y_ch + 0.5 * t, y_ch + 0.5 * t],
+    cax.plot([w + 0.05, XTAG - 0.04], [y_ch + 0.5 * t, y_ch + 0.5 * t],
              color='#1f6ea8', lw=0.35, zorder=3)
     xs = np.linspace(0.036, w - 0.036, 11)
     for xa in xs:
@@ -586,8 +586,11 @@ def draw_cross_section(ax, rect=(0.012, 0.012, 0.404, 0.372), fs=5.2):
                      arrowprops=dict(arrowstyle='-|>', lw=0.45, color=INK,
                                      mutation_scale=2.4, shrinkA=0, shrinkB=0),
                      zorder=7)
-    cax.text(xa + 0.055, y_ch + t + 0.04, r"$A_1'$", fontsize=fs,
-             color=INK, ha='left', va='bottom', zorder=9)
+    # The label goes below the layer, in the clear part of the gate oxide next
+    # to the lower arrow.  Above the layer it would sit in the same band as the
+    # w_h and W dimension lines and collide with them.
+    cax.text(xa + 0.035, y_ch - 0.145, r"$A_1'$", fontsize=fs,
+             color=INK, ha='left', va='top', zorder=9)
 
     # fixed charge on the two etched sidewalls.  Point markers, not data-space
     # circles, so the discs stay round whatever the panel aspect ratio is.
