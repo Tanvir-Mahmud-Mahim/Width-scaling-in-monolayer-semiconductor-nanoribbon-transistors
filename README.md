@@ -5,7 +5,7 @@ Complete code, data and manuscript sources for
 > **Two Raman phonons measure the fixed edge charge that limits width scaling in monolayer semiconductor nanoribbon transistors**
 > Tanvir M. Mahim and M. Mosaddequr Rahman, Department of Electrical and Electronic Engineering, BRAC University, Dhaka 1212, Bangladesh.
 
-Data and benchmarks of record: [10.5281/zenodo.21687328](https://doi.org/10.5281/zenodo.21687328)
+Data and benchmarks of record: [10.5281/zenodo.21778170](https://doi.org/10.5281/zenodo.21778170)
 
 ---
 
@@ -204,7 +204,7 @@ Table S3 of the supplement.
 
 The archive of record, including the raw first-principles output and every
 digitised published benchmark, is deposited at Zenodo:
-**[10.5281/zenodo.21687328](https://doi.org/10.5281/zenodo.21687328)**.
+**[10.5281/zenodo.21778170](https://doi.org/10.5281/zenodo.21778170)**.
 
 `benchmarks/` in this repository holds the same benchmark files as flat CSV,
 each with its source stated in the header line.
