@@ -588,8 +588,11 @@ def draw_cross_section(ax, rect=(0.012, 0.012, 0.404, 0.372), fs=5.2):
                      zorder=7)
     # The label goes below the layer, in the clear part of the gate oxide next
     # to the lower arrow.  Above the layer it would sit in the same band as the
-    # w_h and W dimension lines and collide with them.
-    cax.text(xa + 0.035, y_ch - 0.145, r"$A_1'$", fontsize=fs,
+    # w_h and W dimension lines and collide with them.  It is set smaller than
+    # the other labels: at full size its box spans most of the oxide thickness
+    # and the glyph reads as wedged between the monolayer and the gate rather
+    # than as a caption on the arrow it belongs to.
+    cax.text(xa + 0.030, y_ch - 0.10, r"$A_1'$", fontsize=fs - 1.4,
              color=INK, ha='left', va='top', zorder=9)
 
     # fixed charge on the two etched sidewalls.  Point markers, not data-space
