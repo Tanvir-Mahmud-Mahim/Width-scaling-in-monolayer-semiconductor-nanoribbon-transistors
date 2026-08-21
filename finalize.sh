@@ -5,6 +5,7 @@ cd "$(dirname "$0")"
 echo "== post-processing DFT =="
 (cd dft && python3 postprocess.py > /dev/null)
 [ -f dft/kcheck.json ] && (cd dft && python3 postprocess_kcheck.py > /dev/null) || true
+[ -f dft/soc/soc_MoS2.json ] && (cd dft/soc && python3 postprocess_soc.py > /dev/null) || true
 echo "== analysis =="
 python3 -m rapid.analysis > /dev/null
 echo "== figures =="

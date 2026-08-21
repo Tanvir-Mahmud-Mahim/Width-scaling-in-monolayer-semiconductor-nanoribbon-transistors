@@ -29,7 +29,7 @@ DIST = os.path.join(HERE, 'dist')
 # are uploaded, so the deposit can carry its own DOI, and the manuscript cites
 # that same version rather than a moving target.
 ZENODO_CONCEPT_DOI = '10.5281/zenodo.21670315'
-ZENODO_DOI = '10.5281/zenodo.21778170'          # v3, reserved before upload
+ZENODO_DOI = '10.5281/zenodo.22043216'          # v4, reserved before upload
 GITHUB_URL = ('https://github.com/Tanvir-Mahmud-Mahim/'
               'Width-scaling-in-monolayer-semiconductor-nanoribbon-transistors')
 TITLE = ('Data, benchmarks and code for: Two Raman phonons quantify the '
@@ -62,6 +62,8 @@ def _copytree(src, dst, skip=('__pycache__',)):
         dirs[:] = [d for d in dirs if d not in skip]
         for f in sorted(files):
             if f.endswith('.pyc'):
+                continue
+            if f == 'run.log':      # console duplicate of the .abo record
                 continue
             rel = os.path.relpath(os.path.join(root, f), src)
             _copy(os.path.join(root, f), os.path.join(dst, rel))
@@ -161,6 +163,10 @@ def build_zenodo():
         src = os.path.join(HERE, 'dft', f)
         if os.path.exists(src):
             _copy(src, os.path.join(out, 'first_principles', f))
+    for f in ('soc_MoS2.json', 'soc_WSe2.json', 'soc_summary.json'):
+        src = os.path.join(HERE, 'dft', 'soc', f)
+        if os.path.exists(src):
+            _copy(src, os.path.join(out, 'first_principles', 'soc', f))
 
     # every number quoted in the article
     _copy(os.path.join(HERE, 'results.json'),
@@ -205,7 +211,10 @@ def _write_zenodo_metadata(out, bench):
             'energies for the E′ mode, the relaxed-geometry z scans for '
             'the A₁′ mode, the cutoff / k-mesh / vacuum convergence '
             'study, and the 6x6x1 k-mesh cross-check, together with the '
-            'reduced constants used by the models.</p>'
+            'reduced constants used by the models, and the fully '
+            'relativistic ABINIT spin-orbit cross-check (scalar and spinor '
+            'runs of the same fully relativistic pseudopotentials) with its '
+            'reduced spin-orbit deltas.</p>'
             '<p><b>benchmarks/</b> every published measurement used in the '
             'article, as flat CSV with the source stated in the header: '
             'tip-enhanced Raman shifts at nanoribbon edges, disorder-activated '
@@ -270,6 +279,10 @@ repository-code: "{GITHUB_URL}"
         'repeated on a 6x6x1 k-mesh |',
         '| `dft_summary.json` | the reduced constants used by the models |',
         '| `kcheck_summary.json` | the same reduction applied to the 6x6x1 run |',
+        '| `soc/soc_MoS2.json`, `soc/soc_WSe2.json` | ABINIT total energies '
+        'and band edges of the spin-orbit cross-check, scalar and spinor |',
+        '| `soc/soc_summary.json` | the reduced spin-orbit deltas of the '
+        'strain derivatives |',
         '',
         'Energies are in eV, lengths in angstrom, frequencies in cm^-1.',
         '',
@@ -303,8 +316,12 @@ repository-code: "{GITHUB_URL}"
 # ---------------------------------------------------------------------------
 def build_github():
     out = _fresh(os.path.join(DIST, 'github'))
+    # the raw ABINIT run outputs stay in the Zenodo archive of record; the
+    # repository carries the driver, the pseudopotentials and the reduced
+    # results, which is everything needed to re-run the stage
     for d in ('rapid', 'dft', 'figs'):
-        _copytree(os.path.join(HERE, d), os.path.join(out, d))
+        _copytree(os.path.join(HERE, d), os.path.join(out, d),
+                  skip=('__pycache__', 'runs'))
     for f in ('finalize.sh', 'results.json', 'map_recovery.npz'):
         _copy(os.path.join(HERE, f), os.path.join(out, f))
     # The manuscript sources and the built PDFs are deliberately left out of

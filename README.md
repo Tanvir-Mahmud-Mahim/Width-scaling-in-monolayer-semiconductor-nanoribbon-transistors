@@ -2,10 +2,10 @@
 
 Complete code, data and manuscript sources for
 
-> **Two Raman phonons measure the fixed edge charge that limits width scaling in monolayer semiconductor nanoribbon transistors**
+> **Two Raman Phonons Quantify the Fixed Edge Charge Left by Patterning Monolayer Transition Metal Dichalcogenides**
 > Tanvir M. Mahim and M. Mosaddequr Rahman, Department of Electrical and Electronic Engineering, BRAC University, Dhaka 1212, Bangladesh.
 
-Data and benchmarks of record: [10.5281/zenodo.21778170](https://doi.org/10.5281/zenodo.21778170)
+Data and benchmarks of record: [10.5281/zenodo.22043216](https://doi.org/10.5281/zenodo.22043216)
 
 ---
 
@@ -59,6 +59,11 @@ dft/            first-principles drivers and their stored output
   run_kcheck.py            the MoS2 sweep repeated on a 6x6x1 k-mesh
   postprocess.py           reduces raw output to the constants used downstream
   postprocess_kcheck.py    the same reduction for the k-mesh cross-check
+  soc/                     fully relativistic spin-orbit cross-check (ABINIT,
+                           PseudoDojo FR pseudopotentials): driver, reduction,
+                           the pseudopotential files and the reduced
+                           spin-orbit deltas; the raw run outputs are in the
+                           Zenodo archive of record
   *.json                   the stored output, so nothing has to be re-run
 
 rapid/          the analysis package
@@ -71,6 +76,8 @@ rapid/          the analysis package
   device.py       self-consistent Poisson and drift-diffusion device solve
   quantum.py      NEGF transmission, Schottky contact, Landauer current
   analysis.py     every numerical experiment reported in the article
+  uncertainty.py  Monte Carlo uncertainty propagation, validity bounds and
+                  the independent-mass-set sensitivity test
   figures.py      main-text figures
   device_fig.py   the three-dimensional device schematic
   supplement.py   supplementary figures and tables
@@ -127,6 +134,16 @@ python run_stageC.py && python run_conv.py && python run_kcheck.py
 python postprocess.py && python postprocess_kcheck.py
 ```
 
+The spin-orbit cross-check runs in ABINIT with fully relativistic
+PseudoDojo pseudopotentials (both are open source; the pseudopotential
+files are included under `dft/soc/pseudos/`):
+
+```bash
+cd dft/soc
+python run_soc.py MoS2 & python run_soc.py WSe2 & wait
+python postprocess_soc.py                # -> soc_summary.json
+```
+
 ---
 
 ## Method summary
@@ -140,7 +157,11 @@ is the chalcogen half-thickness itself, so a three-point parabolic scan of that
 one coordinate gives both the relaxed geometry and the force constant at that
 geometry. The acoustic Grüneisen parameter follows from the strain dependence
 of the elastic constant through ω_LA(M) ∝ √C₁₁. A 6 × 6 × 1 cross-check
-confirms that the strain derivatives move by only a few per cent.
+confirms that the strain derivatives move by only a few per cent, and an
+independent fully relativistic calculation (ABINIT, PseudoDojo
+norm-conserving pseudopotentials, scalar and spinor runs otherwise
+identical) bounds the spin-orbit effect on the same derivatives at the
+few-per-cent level.
 
 **Separation.** The two Raman shifts form a 2 × 2 system whose lower-right
 entry is zero, which is the physical content of the method. Because the
@@ -148,6 +169,15 @@ overtone is measured not to shift at the edge, the strain is pinned near zero
 for any non-zero acoustic Grüneisen parameter, so the edge result does not
 depend on the calculated value. The assumption that the overtone is charge
 insensitive is bounded rather than asserted.
+
+**Uncertainty.** Every stated input uncertainty of the edge inversion,
+both Grüneisen parameters over their full computed-to-measured brackets,
+the doping coefficient over its measured 15 %, the shift noise and the
+5 to 20 nm edge width, is propagated by Monte Carlo through the same
+estimator to the edge density and on to the critical width; closed-form
+Ioffe-Regel and Kane bounds locate the edges of the transport model's
+validity, and the whole analysis is repeated with an independent
+spin-orbit-resolved mass set.
 
 **Adjoint inversion.** The same forward model extends to a full hyperspectral
 image, where defect density, strain and carrier density are recovered jointly.
@@ -204,7 +234,7 @@ Table S3 of the supplement.
 
 The archive of record, including the raw first-principles output and every
 digitised published benchmark, is deposited at Zenodo:
-**[10.5281/zenodo.21778170](https://doi.org/10.5281/zenodo.21778170)**.
+**[10.5281/zenodo.22043216](https://doi.org/10.5281/zenodo.22043216)**.
 
 `benchmarks/` in this repository holds the same benchmark files as flat CSV,
 each with its source stated in the header line.
