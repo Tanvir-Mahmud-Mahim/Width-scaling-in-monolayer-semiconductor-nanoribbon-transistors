@@ -620,7 +620,7 @@ def fig_toc(res):
     n = kv['edge']['n_1e13'] * 10.0            # 1e12 cm^-2
     fig = plt.figure(figsize=(3.25, 1.75))
     ax = fig.add_axes([0.00, 0.00, 0.60, 1.00])
-    device_fig.draw_device(ax, fs=5.0)
+    device_fig.draw_device(ax, fs=5.0, terminals=False, cutplane=False)
     tx = fig.add_axes([0.60, 0.00, 0.40, 1.00])
     tx.set_axis_off()
     tx.text(0.5, 0.87, "$A_1'$ + 2LA(M)", fontsize=9.5, color=INK,

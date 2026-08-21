@@ -645,8 +645,13 @@ def _cut_plane(ax, fs=6.8, x=None):
     return a, b
 
 
-def draw_device(ax, fs=6.8):
-    """Render the schematic and its labels into a plain 2D axes."""
+def draw_device(ax, fs=6.8, terminals=True, cutplane=True):
+    """Render the schematic and its labels into a plain 2D axes.
+
+    `terminals` and `cutplane` exist for the table-of-contents rendering: at
+    TOC size the terminal leads and the section line carry no labels, so they
+    read as stray marks rather than as wiring, and are better omitted.
+    """
     ax.set_aspect('equal')
     ax.set_axis_off()
 
@@ -657,8 +662,9 @@ def draw_device(ax, fs=6.8):
     _edge_charges(ax)
     tip_apex, beam_top, scat = _raman_tip(ax)
     dims = {}
-    terms = _terminals(ax, fs=fs)
-    _cut_plane(ax, fs=fs)
+    terms = _terminals(ax, fs=fs) if terminals else {}
+    if cutplane:
+        _cut_plane(ax, fs=fs)
 
     # ---- anchors, in projected coordinates ---------------------------
     def pr(p):
@@ -685,9 +691,11 @@ def draw_device(ax, fs=6.8):
     # the labels small relative to the device.
     allv = np.concatenate([f[2] for f in sc.faces], axis=0)
     P = project(allv)
+    extra = [beam_top, scat] + [terms[k] for k in
+                                ('gate_term', 'drain_term', 'source_term')
+                                if k in terms]
     P = np.vstack([P, project(np.array([[TIPX, Y0, Z_CH + 1.82]])),
-                   np.array([beam_top, scat, terms['gate_term'],
-                             terms['drain_term'], terms['source_term']])])
+                   np.array(extra)])
     x0, x1 = P[:, 0].min(), P[:, 0].max()
     y0, y1 = P[:, 1].min(), P[:, 1].max()
     w, h = x1 - x0, y1 - y0
