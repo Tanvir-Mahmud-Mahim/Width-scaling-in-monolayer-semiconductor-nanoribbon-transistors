@@ -608,9 +608,43 @@ def fig3(res):
     plt.close(fig)
 
 
+# ===========================================================================
+def fig_toc(res):
+    """ACS table-of-contents graphic, 3.25 by 1.75 inches at 600 dpi.
+
+    One reading in one glance: the probed device on the left, and on the
+    right the pair of phonons turning into the edge charge density.  Only the
+    headline number appears, set from the same results file as the article.
+    """
+    kv = res['krayev']
+    n = kv['edge']['n_1e13'] * 10.0            # 1e12 cm^-2
+    fig = plt.figure(figsize=(3.25, 1.75))
+    ax = fig.add_axes([0.00, 0.00, 0.60, 1.00])
+    device_fig.draw_device(ax, fs=5.0)
+    tx = fig.add_axes([0.60, 0.00, 0.40, 1.00])
+    tx.set_axis_off()
+    tx.text(0.5, 0.87, "$A_1'$ + 2LA(M)", fontsize=9.5, color=INK,
+            ha='center', va='center')
+    tx.annotate('', xy=(0.5, 0.56), xytext=(0.5, 0.76),
+                arrowprops=dict(arrowstyle='-|>', lw=1.2, color=INK,
+                                mutation_scale=12))
+    tx.text(0.5, 0.42,
+            r'$\sigma_{\rm e} = %.1f \times 10^{12}$' % n + '\n'
+            r'cm$^{-2}$',
+            fontsize=10.5, color='#D55E00', ha='center', va='center',
+            linespacing=1.3, fontweight='bold')
+    tx.text(0.5, 0.10, 'charge and strain, separated\nat an etched edge',
+            fontsize=6.4, color=INK2, ha='center', va='center',
+            linespacing=1.25)
+    fig.savefig(os.path.join(FIGS, 'toc_graphic.pdf'))
+    fig.savefig(os.path.join(FIGS, 'toc_graphic.png'), dpi=600)
+    plt.close(fig)
+
+
 def main():
     res = _load()
     fig_abstract(res)
+    fig_toc(res)
     fig1(res)
     fig2(res)
     fig3(res)
