@@ -303,6 +303,81 @@ def main():
         if 'gamma_A_sym_4x4' in k6:
             cmd('GammaAkFour', '%.2f' % k6['gamma_A_sym_4x4'])
 
+    # ---- Monte Carlo uncertainty propagation (A13)
+    u = r['uncertainty']
+    cmd('McN', '{:,}'.format(u['N']).replace(',', r'\,'))
+    cmd('EdgeNMed', _fmt_sci(u['edge_n_cm2']['p50']))
+    cmd('EdgeNLo', _fmt_sci(u['edge_n_cm2']['p16']))
+    cmd('EdgeNHi', _fmt_sci(u['edge_n_cm2']['p84']))
+    cmd('EdgeNLoLo', _fmt_sci(u['edge_n_cm2']['p2_5']))
+    cmd('EdgeNHiHi', _fmt_sci(u['edge_n_cm2']['p97_5']))
+    cmd('ProbEdgePos', '%.0f' % (100.0 * u['prob_n_positive']))
+    cmd('WcMcMed', '%.0f' % u['Wc']['p50'])
+    cmd('WcMcLo', '%.0f' % u['Wc']['p16'])
+    cmd('WcMcHi', '%.0f' % u['Wc']['p84'])
+    cmd('WcMcLoLo', '%.0f' % u['Wc']['p2_5'])
+    cmd('WcMcHiHi', '%.0f' % u['Wc']['p97_5'])
+    cmd('SpotStrainMed', '%.2f' % u['spot_eps']['p50'])
+    cmd('SpotStrainLo', '%.2f' % u['spot_eps']['p16'])
+    cmd('SpotStrainHi', '%.2f' % u['spot_eps']['p84'])
+    cmd('GammaAPriorLo', '%.2f' % u['priors']['gA'][0])
+    cmd('GammaAPriorHi', '%.2f' % u['priors']['gA'][1])
+    cmd('GammaLAPriorLo', '%.2f' % u['priors']['gLA'][0])
+    cmd('GammaLAPriorHi', '%.2f' % u['priors']['gLA'][1])
+    cmd('NdRelErrMax', '%.0f' % (100.0 * max(u['nd_rel_err'].values())))
+
+    # ---- validity bounds (A14)
+    va = r['validity']
+    ir = va['ioffe_regel']['points']
+    cmd('IoffeOneModel', '%.1f' % ir[0]['model']['kFl'])
+    cmd('IoffeOneRef', '%.1f' % ir[0]['reference']['kFl'])
+    cmd('IoffeTwoModel', '%.1f' % ir[1]['model']['kFl'])
+    cmd('IoffeTwoRef', '%.1f' % ir[1]['reference']['kFl'])
+    cmd('MfpSpacingTwo', '%.1f' % ir[1]['reference']['mfp_over_spacing'])
+    cmd('KaneBoundMoS', '%.0f' % (100.0 *
+                                  va['kane']['MoS2']['mass_shift_bound']))
+    cmd('KaneBoundWS', '%.0f' % (100.0 *
+                                 va['kane']['WS2']['mass_shift_bound']))
+    _det = [va['detuning'][n]['spread'] for n in ('WS2', 'MoSe2', 'WSe2')]
+    cmd('DetSpreadLo', '%.0f' % (100.0 * (min(_det) - 1.0)))
+    cmd('DetSpreadHi', '%.0f' % (100.0 * (max(_det) - 1.0)))
+
+    # ---- mass-set sensitivity (A15)
+    ms = r['mass_sensitivity']
+    cmd('MassWcShift', '%.0f' % (100.0 * abs(1.0 - ms['MoS2']['Wc_ratio'])))
+    cmd('MassMuShiftWS', '%.0f' % (100.0 * abs(1.0 - ms['WS2']['mu_ratio'])))
+    cmd('MassMuShiftMax', '%.0f' % (100.0 * max(
+        abs(1.0 - v['mu_ratio']) for v in ms.values())))
+
+    # ---- spin-orbit cross-check (stage E, ABINIT), if it has been run
+    _soc = os.path.join(ROOT, 'dft', 'soc', 'soc_summary.json')
+    if os.path.exists(_soc):
+        with open(_soc) as fh:
+            sj = json.load(fh)
+        for name, tag in (('MoS2', 'MoS'), ('WSe2', 'WSe')):
+            dl = sj.get(name, {}).get('delta', {})
+            if 'dwA_deps' in dl:
+                cmd('SocdwA' + tag,
+                    '%.2f' % (100.0 * abs(dl['dwA_deps']['rel'])))
+                cmd('SocGammaA' + tag,
+                    '%.2f' % (100.0 * abs(dl['gamma_A']['rel'])))
+                cmd('SocWA' + tag, '%.1f' % abs(dl['wA']['abs']))
+                cmd('SocGap' + tag,
+                    '%.0f' % abs(1000.0 * dl['gap_K']['abs']))
+            if 'dgap_deps' in dl:
+                cmd('SocDgap' + tag,
+                    '%.1f' % (100.0 * abs(dl['dgap_deps']['rel'])))
+            if 'C11_plus_C12' in dl:
+                cmd('SocCel' + tag,
+                    '%.1f' % (100.0 * abs(dl['C11_plus_C12']['rel'])))
+            if 'gamma_A' in dl:
+                cmd('GammaASoc' + tag, '%.2f' % dl['gamma_A']['soc'])
+                cmd('GammaASr' + tag, '%.2f' % dl['gamma_A']['sr'])
+                cmd('AbidwA' + tag, '%.2f' % abs(dl['dwA_deps']['sr']))
+            if 'dgap_deps' in dl:
+                cmd('AbiDgap' + tag,
+                    '%.0f' % abs(sj[name]['sr']['dgap_deps']))
+
     cmd('NitSiO', _fmt_sci(transport.N_IT_SIO2))
     cmd('NitHfO', _fmt_sci(transport.N_IT_HFO2))
     cmd('Udefect', '%.3f' % mats['MoS2'].Udef)

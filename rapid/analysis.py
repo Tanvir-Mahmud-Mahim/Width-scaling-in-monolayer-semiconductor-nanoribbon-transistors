@@ -13,7 +13,7 @@ import numpy as np
 from scipy.optimize import brentq
 
 from . import adjoint, spectra, transport, datasets as D
-from . import device, quantum
+from . import device, quantum, uncertainty
 from .materials import (all_materials, MATERIALS, Material,
                         EPS_HFO2, EPS_SIO2)
 
@@ -709,6 +709,20 @@ def main():
     res['energy_resolved'] = A11_energy_resolved(mats)
     res['quantum'] = A12_quantum(mats)
     res['predictions'] = A9_predictions(mats)
+    n_edge = res['krayev']['edge']['n_cm2']
+    res['uncertainty'] = uncertainty.A13_uncertainty(mats, n_edge)
+    res['validity'] = uncertainty.A14_validity(mats)
+    # Kormanyos et al., 2D Mater. 2, 022001 (2015), Tables 3 and 4, DFT with
+    # spin-orbit coupling (PBE).  Conduction band: the mean of the two
+    # spin-split subband masses, since the splitting (3 to 37 meV) is at or
+    # below kT at 300 K and both subbands carry current.  Valence band: the
+    # subband closer to the gap, since there the splitting far exceeds kT.
+    kp = {'MoS2': dict(mcK=(0.47 + 0.44) / 2, mvK=0.54),
+          'WS2': dict(mcK=(0.27 + 0.36) / 2, mvK=0.36),
+          'MoSe2': dict(mcK=(0.58 + 0.50) / 2, mvK=0.60),
+          'WSe2': dict(mcK=(0.29 + 0.40) / 2, mvK=0.36)}
+    res['mass_sensitivity'] = uncertainty.A15_mass_sensitivity(
+        mats, kp, transport.edge_line_charge(n_edge, 10.0))
     res['materials'] = {n: dict(wE=m.wE, wA=m.wA, wLA=m.wLA, gE=m.gE, gA=m.gA,
                                 C_A=m.C_A, Udef=m.Udef, mu_ph=m.mu_ph,
                                 gauge=m.gaugeA, dA=m.dA, C2D=m.C2D)
