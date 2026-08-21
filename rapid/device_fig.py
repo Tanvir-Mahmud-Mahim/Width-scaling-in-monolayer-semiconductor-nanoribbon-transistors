@@ -592,7 +592,9 @@ def draw_cross_section(ax, rect=(0.012, 0.012, 0.404, 0.372), fs=5.2):
     # the other labels: at full size its box spans most of the oxide thickness
     # and the glyph reads as wedged between the monolayer and the gate rather
     # than as a caption on the arrow it belongs to.
-    cax.text(xa + 0.030, y_ch - 0.10, r"$A_1'$", fontsize=fs - 1.4,
+    # ACS floors figure lettering at 4.5 pt in the published size; with the
+    # panel's fs of 5.2 the old fs - 1.4 fell below it.
+    cax.text(xa + 0.030, y_ch - 0.10, r"$A_1'$", fontsize=max(fs - 1.4, 4.6),
              color=INK, ha='left', va='top', zorder=9)
 
     # fixed charge on the two etched sidewalls.  Point markers, not data-space
