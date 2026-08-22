@@ -405,7 +405,7 @@ def _terminals(ax, fs=6.8):
     return out
 
 
-def _raman_tip(ax):
+def _raman_tip(ax, scatter=True):
     """Metal tip with a true excitation cone converging on its apex."""
     ty = Y0 - 0.02                      # the tip sits over the near edge
     apex = np.array([TIPX, ty, Z_CH + T_MONO + 0.05])
@@ -440,9 +440,14 @@ def _raman_tip(ax):
     q0 = apex + np.array([-0.12, -0.14, 0.16])
     q1 = apex + np.array([-1.95, -1.16, 1.34])
     a, b = project(np.array([q0, q1]))
-    ax.add_patch(FancyArrowPatch(a, b, arrowstyle='-|>', mutation_scale=4.6,
-                                 lw=0.7, color=VERM, shrinkA=0, shrinkB=0,
-                                 zorder=11))
+    if scatter:
+        ax.add_patch(FancyArrowPatch(a, b, arrowstyle='-|>',
+                                     mutation_scale=4.6, lw=0.7, color=VERM,
+                                     shrinkA=0, shrinkB=0, zorder=11))
+    else:
+        # no arrow drawn: hand back the hot spot instead, so the extent
+        # calculation does not reserve empty space for it
+        b = P
     return apex, project(np.array([[TIPX - 0.80, ty, Z_CH + 1.74]]))[0], b
 
 
@@ -647,12 +652,14 @@ def _cut_plane(ax, fs=6.8, x=None):
     return a, b
 
 
-def draw_device(ax, fs=6.8, terminals=True, cutplane=True):
+def draw_device(ax, fs=6.8, terminals=True, cutplane=True,
+                scatter_arrow=True):
     """Render the schematic and its labels into a plain 2D axes.
 
-    `terminals` and `cutplane` exist for the table-of-contents rendering: at
-    TOC size the terminal leads and the section line carry no labels, so they
-    read as stray marks rather than as wiring, and are better omitted.
+    `terminals`, `cutplane` and `scatter_arrow` exist for the
+    table-of-contents rendering: at TOC size the terminal leads, the section
+    line and the scattered-light arrow carry no labels, so they read as stray
+    marks rather than as wiring, and are better omitted.
     """
     ax.set_aspect('equal')
     ax.set_axis_off()
@@ -662,7 +669,7 @@ def draw_device(ax, fs=6.8, terminals=True, cutplane=True):
     _lattice(ax, XS + 0.06, XE - 0.06, Y0 + HALO + 0.03,
              Y0 + WR - HALO - 0.03, Z_CH + T_MONO + 0.001)
     _edge_charges(ax)
-    tip_apex, beam_top, scat = _raman_tip(ax)
+    tip_apex, beam_top, scat = _raman_tip(ax, scatter=scatter_arrow)
     dims = {}
     terms = _terminals(ax, fs=fs) if terminals else {}
     if cutplane:
