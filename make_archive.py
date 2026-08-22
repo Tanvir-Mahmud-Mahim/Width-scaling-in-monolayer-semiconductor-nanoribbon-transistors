@@ -29,7 +29,7 @@ DIST = os.path.join(HERE, 'dist')
 # are uploaded, so the deposit can carry its own DOI, and the manuscript cites
 # that same version rather than a moving target.
 ZENODO_CONCEPT_DOI = '10.5281/zenodo.21670315'
-ZENODO_DOI = '10.5281/zenodo.22043216'          # v4, reserved before upload
+ZENODO_DOI = '10.5281/zenodo.22053747'          # v5, reserved before upload
 GITHUB_URL = ('https://github.com/Tanvir-Mahmud-Mahim/'
               'Width-scaling-in-monolayer-semiconductor-nanoribbon-transistors')
 TITLE = ('Data, benchmarks and code for: Two Raman phonons quantify the '

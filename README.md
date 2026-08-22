@@ -5,7 +5,7 @@ Complete code, data and manuscript sources for
 > **Two Raman Phonons Quantify the Fixed Edge Charge Left by Patterning Monolayer Transition Metal Dichalcogenides**
 > Tanvir M. Mahim and M. Mosaddequr Rahman, Department of Electrical and Electronic Engineering, BRAC University, Dhaka 1212, Bangladesh.
 
-Data and benchmarks of record: [10.5281/zenodo.22043216](https://doi.org/10.5281/zenodo.22043216)
+Data and benchmarks of record: [10.5281/zenodo.22053747](https://doi.org/10.5281/zenodo.22053747)
 
 ---
 
@@ -234,7 +234,7 @@ Table S3 of the supplement.
 
 The archive of record, including the raw first-principles output and every
 digitised published benchmark, is deposited at Zenodo:
-**[10.5281/zenodo.22043216](https://doi.org/10.5281/zenodo.22043216)**.
+**[10.5281/zenodo.22053747](https://doi.org/10.5281/zenodo.22053747)**.
 
 `benchmarks/` in this repository holds the same benchmark files as flat CSV,
 each with its source stated in the header line.
