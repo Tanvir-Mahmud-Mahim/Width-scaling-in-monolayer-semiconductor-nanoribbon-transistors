@@ -172,7 +172,7 @@ insensitive is bounded rather than asserted.
 
 **Uncertainty.** Every stated input uncertainty of the edge inversion,
 both Grüneisen parameters over their full computed-to-measured brackets,
-the doping coefficient over its measured 15 %, the shift noise and the
+the doping coefficient over an assigned 15 %, the shift noise and the
 5 to 20 nm edge width, is propagated by Monte Carlo through the same
 estimator to the edge density and on to the critical width; closed-form
 Ioffe-Regel and Kane bounds locate the edges of the transport model's
