@@ -13,7 +13,8 @@ A13_uncertainty
     charge inversion through to the recovered edge density, the line charge
     and the critical width:
       * the A1' doping coefficient dA, Gaussian with the 15 per cent
-        uncertainty stated for the Chakraborty measurement,
+        uncertainty this work assigns to the Chakraborty measurement,
+        which reports the softening without an error estimate,
       * the A1' Grueneisen parameter, log-uniform between the measured
         biaxial value (Michail 2024) and the value computed in this work,
         which is the full computed-to-measured bracket of limitation 10,
