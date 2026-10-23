@@ -35,9 +35,10 @@ ZENODO_CONCEPT_DOI = '10.5281/zenodo.21670315'
 ZENODO_DOI = ZENODO_CONCEPT_DOI
 GITHUB_URL = ('https://github.com/Tanvir-Mahmud-Mahim/'
               'Width-scaling-in-monolayer-semiconductor-nanoribbon-transistors')
-TITLE = ('Data, benchmarks and code for: Two Raman phonons quantify the '
-         'fixed edge charge left by patterning monolayer transition metal '
-         'dichalcogenides')
+ARTICLE = ('Two Raman phonons and transistor thresholds quantify the fixed '
+           'edge charge left by patterning monolayer transition metal '
+           'dichalcogenides')
+TITLE = 'Data, benchmarks and code for: ' + ARTICLE
 AUTHORS = [
     dict(name='Mahim, Tanvir M.',
          affiliation='Department of Electrical and Electronic Engineering, '
@@ -235,8 +236,7 @@ def _write_zenodo_metadata(out, bench):
         'creators': AUTHORS,
         'description': (
             '<p>Data, benchmarks and code accompanying the article '
-            '"Two Raman phonons quantify the fixed edge charge left by '
-            'patterning monolayer transition metal dichalcogenides".</p>'
+            f'"{ARTICLE}".</p>'
             '<p><b>first_principles/</b> raw PySCF output: the chalcogen-height '
             'relaxation, the five-point biaxial strain sweep with band '
             'energies at the high-symmetry points, the symmetric frozen-phonon '
