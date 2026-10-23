@@ -141,9 +141,13 @@ PENA = dict(
 
 # ---------------------------------------------------------------------------
 # Yang, Pena et al., ACS Appl. Mater. Interfaces 18, 10161 (2026)
-# doi:10.1021/acsami.5c19328   Lateral-force-microscopy defect counting.
+# doi:10.1021/acsami.5c19328   Lateral-force-microscopy (LFM) counting of
+# surface defects (one side of the monolayer; the work estimates the total at
+# about twice the LFM count).  Values are the LFM densities as reported, with
+# the upper error bar.  SS-CVD: solid-source CVD.
 # ---------------------------------------------------------------------------
 YANG_DEFECTS = {
+    'WSe2 self-flux': (7.3e11, 1.8e11),
     'WS2 SS-CVD': (1.3e12, 0.5e12),
     'WSe2 SS-CVD': (2.2e12, 0.3e12),
     'WSe2 MOCVD': (5.3e13, 1.6e13),
@@ -163,7 +167,7 @@ DOSSENA = dict(mu_phonon=312.0,
 # Mignuzzi et al., Phys. Rev. B 91, 195411 (2015) doi:10.1103/PhysRevB.91.195411
 # ---------------------------------------------------------------------------
 MIGNUZZI = dict(C_A=0.59, C_A_err=0.03, C_E=1.11, C_E_err=0.08,
-                alpha_A=0.5, alpha_E=0.8, wLA=227.6, laser_nm=532.0)
+                wLA=227.0, laser_nm=532.0)
 
 # ---------------------------------------------------------------------------
 # Michail et al., ACS Appl. Mater. Interfaces 16, 49602 (2024)
@@ -174,7 +178,7 @@ MIGNUZZI = dict(C_A=0.59, C_A_err=0.03, C_E=1.11, C_E_err=0.08,
 # dw/deps, so that they can be compared directly with the calculation.
 # The WSe2 measurement includes the 2LA overtone, which is the acoustic
 # channel this work relies on, so it is the one direct test of the acoustic
-# lever arm that exists.
+# strain sensitivity that we know of.
 MICHAIL_BIAX = {
     'MoS2': dict(dwE=-4.3, dwE_e=0.1, dwA=-2.5, dwA_e=0.3,
                  gE=0.56, gE_e=0.02, gA=0.31, gA_e=0.02,

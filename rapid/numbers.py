@@ -138,6 +138,7 @@ def main():
 
     # ---- ribbons
     rb = r['ribbons']
+    cmd('NdRef', _fmt_sci(rb['nd_ref']))
     cmd('SigmaLine', _fmt_sci(rb['sigma_line_cm']))
     cmd('Wedge', '%.0f' % rb['w_edge_nm'])
     cmd('Vov', '%.1f' % rb['Vov'])

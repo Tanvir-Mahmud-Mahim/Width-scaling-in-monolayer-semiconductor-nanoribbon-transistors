@@ -131,7 +131,7 @@ def figS2():
     ax.bar(w - 0.19, wE, 0.33, color=CAT[0], lw=0, label=r"$E'$ (DFT)")
     ax.bar(w + 0.19, wA, 0.33, color=CAT[1], lw=0, label=r"$A_1'$ (DFT)")
     ax.plot(w - 0.19, [PHONON[m]['wE'] for m in MATERIALS], 'o', ms=3.4,
-            color=INK, mfc='white', mew=0.9, label='experiment')
+            color=INK, mfc='white', mew=0.9, label='published')
     ax.plot(w + 0.19, [PHONON[m]['wA'] for m in MATERIALS], 'o', ms=3.4,
             color=INK, mfc='white', mew=0.9)
     ax.set_xticks(w)

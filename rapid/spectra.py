@@ -104,23 +104,3 @@ def jacobian_fd(theta, mat: Material, h=1e-6):
         J[..., i] = (forward(theta + dp, mat) - forward(theta - dp, mat)) / (2 * h)
     return J
 
-
-# ---------------------------------------------------------------------------
-# auxiliary channel, reported but never used in the inversion
-# ---------------------------------------------------------------------------
-def raman_fwhm(theta, mat: Material, G0E=3.0, G0A=4.0, gGam=6.0, bA=3.33):
-    """Raman full widths (cm^-1).
-
-    The doping term for A1' is anchored on Chakraborty et al., Phys. Rev. B
-    85, 161403 (2012): +6 cm^-1 broadening at n = 1.8e13 cm^-2.  The disorder
-    term uses a phonon lifetime that scales with n_d through the correlation
-    length L_C = alpha L_D of Mignuzzi et al., Phys. Rev. B 91, 195411 (2015);
-    gGam is not calibrated against any data set and this channel is therefore
-    excluded from the inversion.
-    """
-    theta = np.atleast_2d(np.asarray(theta, dtype=float))
-    u, N = theta[..., 0], theta[..., 2]
-    LD = defect_length(u)
-    GE = G0E + 100.0 * gGam / (mat.alpha_E * LD) ** 2
-    GA = G0A + bA * N + 100.0 * gGam / (mat.alpha_A * LD) ** 2
-    return np.stack([GE, GA], axis=-1)

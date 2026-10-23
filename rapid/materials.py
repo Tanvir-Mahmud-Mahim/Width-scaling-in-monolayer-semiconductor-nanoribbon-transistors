@@ -20,9 +20,8 @@ PROVENANCE = {
     'BANDS': 'lit: Jin et al., Phys. Rev. B 90, 045422 (2014)',
     'MU_PHONON': 'lit: Jin et al., Phys. Rev. B 90, 045422 (2014), Table III,\n'
                  'the K-valley dominated column',
-    'PHONON': 'lit: Mignuzzi 2015 and Michail 2016 (MoS2), Berkdemir 2013\n'
-              '(WS2), Terrones 2014 (WSe2), Tonndorf, Opt. Express 21, 4908\n'
-              '(2013) (MoSe2)',
+    'PHONON': 'lit: Michail 2024 and Mignuzzi 2015 (MoS2), Berkdemir 2013\n'
+              '(WS2), Terrones 2014 DFPT values (WSe2), Tonndorf 2013 (MoSe2)',
     'EXCITON': 'lit: gauge factors, Henriquez-Guerra et al., ACS AMI 15,\n'
                '57369 (2023); A-exciton energies, Tonndorf 2013 (MoSe2, WSe2)\n'
                'and typical values (MoS2, WS2); linewidths assumed, 35-45 meV',
@@ -46,6 +45,8 @@ PROVENANCE = {
             '(2025), WS2 on disordered Al2O3, used as a short-range\n'
             'scattering proxy',
     'N_IT': 'cal: fixed once on measured monolayer field-effect mobility',
+    'n_d (reference film)': 'lit: Yang et al., ACS AMI 18, 10161 (2026),\n'
+                            'lateral-force-microscopy count, grown WS2',
     'edge shifts': 'lit: Krayev et al., Appl. Phys. Lett. 128, 203102 (2026),\n'
                    'edges of one XeF2-etched, annealed ribbon on gold, 785 nm',
     'lambda_2LA': 'assumed: zero for MoS2, where it has not been measured;\n'
@@ -90,19 +91,24 @@ VALLEY_DEG = dict(K=2, Q=6)      # K/K' and the six Q (Lambda) pockets
 MU_PHONON = {'MoS2': 320.0, 'WS2': 690.0, 'MoSe2': 180.0, 'WSe2': 250.0}
 
 # --------------------------------------------------------------------------
-# Raman-active zone-centre modes (cm^-1), 300 K, monolayer, on SiO2
-#   MoS2  : Mignuzzi PRB 91, 195411 (2015); Michail APL 108, 173102 (2016)
-#   WS2   : Berkdemir Sci. Rep. 3, 1755 (2013), monolayer at 488 nm excitation
-#   WSe2  : Terrones Sci. Rep. 4, 4215 (2014), Raman measurement combined with
-#           density functional perturbation theory; the two modes are near
-#           degenerate at about 250 cm^-1 in the monolayer
-#   MoSe2 : Tonndorf Opt. Express 21, 4908 (2013), monolayer A1' at 240.5 cm^-1
+# Raman-active zone-centre modes (cm^-1) of the monolayer, 300 K
+#   MoS2  : E' and A1' are the zero-strain positions of Michail et al., ACS
+#           Appl. Mater. Interfaces 16, 49602 (2024), Table 1, mean of the
+#           four devices; LA(M) at about 227 cm^-1, Mignuzzi et al., Phys.
+#           Rev. B 91, 195411 (2015)
+#   WS2   : Berkdemir et al., Sci. Rep. 3, 1755 (2013), Table 1, monolayer at
+#           488 nm excitation (E' 355.9, A1' 417.5, LA(M) 176 cm^-1)
+#   WSe2  : Terrones et al., Sci. Rep. 4, 4215 (2014), DFPT values for the
+#           monolayer, which match the measured near-degenerate pair at about
+#           250 cm^-1; LA(M) at about 130 cm^-1 (Michail et al. 2024)
+#   MoSe2 : Tonndorf et al., Opt. Express 21, 4908 (2013), monolayer
+#           (E' 287.2, A1' 240.5 cm^-1)
 # LA(M) is the disorder-activated zone-edge acoustic phonon.
 # --------------------------------------------------------------------------
 PHONON = {
-    'MoS2':  dict(wE=385.0, wA=403.0, wLA=227.6),
-    'WS2':   dict(wE=356.0, wA=417.5, wLA=176.0),
-    'MoSe2': dict(wE=287.0, wA=240.5, wLA=None),   # LA(M) from DFT scaling
+    'MoS2':  dict(wE=384.4, wA=403.0, wLA=227.0),
+    'WS2':   dict(wE=355.9, wA=417.5, wLA=176.0),
+    'MoSe2': dict(wE=287.2, wA=240.5, wLA=None),   # LA(M) from DFT scaling
     'WSe2':  dict(wE=249.4, wA=250.2, wLA=130.0),
 }
 
@@ -135,10 +141,9 @@ DOPING_MoS2 = dict(dA=-2.20, dE=-0.33)
 # MoS2 anchor: Mignuzzi et al., Phys. Rev. B 91, 195411 (2015):
 #     I(LA)/I(A1') = C_A / L_D^2 ,  C_A = 0.59 +- 0.03 nm^2 at 532 nm
 #     I(LA)/I(E' ) = C_E / L_D^2 ,  C_E = 1.11 +- 0.08 nm^2 at 532 nm
-#     phonon correlation length L_C = alpha * L_D, alpha = 0.5 (A1'), 0.8 (E')
 # --------------------------------------------------------------------------
 RAMAN_CAL = dict(C_A=0.59, C_A_err=0.03, C_E=1.11, C_E_err=0.08,
-                 alpha_A=0.5, alpha_E=0.8, laser_nm=532.0)
+                 laser_nm=532.0)
 
 # --------------------------------------------------------------------------
 # Measured biaxial-strain mode Grueneisen parameters, where they exist, in the
@@ -146,17 +151,19 @@ RAMAN_CAL = dict(C_A=0.59, C_A_err=0.03, C_E=1.11, C_E_err=0.08,
 # Appl. Mater. Interfaces 16, 49602 (2024) cover both optical modes of MoS2
 # and, for WSe2, the A1' mode and the 2LA overtone; that last one is the only
 # direct biaxial measurement of a zone-edge acoustic Grueneisen parameter in
-# this family, and it is the value the acoustic lever arm is checked against.
-# The E' mode of WS2 has been measured biaxially by Michail et al., J. Phys.
-# Chem. C 127, 3506 (2023), but the value is not reproduced here and is not
-# used.  MoSe2 has not been measured.  The calculated values are used
-# throughout; these entries serve only as a comparison.
+# this family that we know of, and it is the value the computed acoustic
+# strain sensitivity is checked against.  WSe2 entries are means over the five
+# devices of that work (Table 2), as for MoS2 (Table 1).  The E' mode of WS2
+# has been measured biaxially by Michail et al., J. Phys. Chem. C 127, 3506
+# (2023), but the value is not reproduced here and is not used.  We know of no
+# measurement for MoSe2.  The calculated values are used throughout; these
+# entries serve as a comparison and set the low end of the acoustic bracket.
 # --------------------------------------------------------------------------
 GAMMA_MEAS = {
     'MoS2':  dict(gE=0.56, gA=0.31),
     'WS2':   dict(),
     'MoSe2': dict(),
-    'WSe2':  dict(gA=0.26, gLA=0.45),
+    'WSe2':  dict(gA=0.27, gLA=0.46),
 }
 
 # elastic / lattice
@@ -220,7 +227,7 @@ class Material:
         # the value computed in this work.  Both are kept.
         self.gE_dft = self.dft.get('gamma_E', float('nan'))
         self.gA_dft = self.dft.get('gamma_A', float('nan'))
-        # The two lever arms used in the charge/strain separation must be
+        # The two strain sensitivities used in the charge/strain separation must be
         # internally consistent, so both come from the same calculation.  The
         # published biaxial measurements, which are limited by strain transfer
         # through the substrate, are kept for comparison in GAMMA_MEAS.
@@ -245,8 +252,6 @@ class Material:
         # disorder-activated Raman constants (nm^2)
         self.C_A = self.dft.get('C_A', RAMAN_CAL['C_A'])
         self.C_E = self.dft.get('C_E', RAMAN_CAL['C_E'])
-        self.alpha_A = RAMAN_CAL['alpha_A']
-        self.alpha_E = RAMAN_CAL['alpha_E']
         # neutral point-defect scattering potential (eV nm^2).  Calibrated
         # once against the first-principles disordered-WS2 transport result of
         # Dossena et al., npj 2D Mater. Appl. 9, 67 (2025) and held fixed.

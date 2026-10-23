@@ -140,7 +140,7 @@ def A5_krayev(mats):
     """
     m = mats['MoS2']
     gLA = m.dft.get('gamma_LA', 1.30)
-    w2LA = 2.0 * (m.wLA or 227.6)
+    w2LA = 2.0 * (m.wLA or 227.0)
     dw2LA_deps = -2.0 * gLA * w2LA / 100.0          # cm^-1 per %
     dwA_deps = -2.0 * m.gA * m.wA / 100.0
     dwA_dn = m.dA                                   # cm^-1 per 1e13 cm^-2
@@ -184,7 +184,7 @@ def A5c_overtone_doping(mats, rel=None):
     """
     m = mats['MoS2']
     gLA = m.dft.get('gamma_LA', 1.30)
-    w2LA = 2.0 * (m.wLA or 227.6)
+    w2LA = 2.0 * (m.wLA or 227.0)
     dw2LA_deps = -2.0 * gLA * w2LA / 100.0
     dwA_deps = -2.0 * m.gA * m.wA / 100.0
     dwA_dn = m.dA
@@ -214,7 +214,7 @@ def A5b_krayev_robustness(mats, gvals=None):
     m = mats['MoS2']
     if gvals is None:
         gvals = np.linspace(0.3, 3.3, 61)
-    w2LA = 2.0 * (m.wLA or 227.6)
+    w2LA = 2.0 * (m.wLA or 227.0)
     dwA_deps = -2.0 * m.gA * m.wA / 100.0
     dwA_dn = m.dA
     out = []
@@ -270,6 +270,10 @@ def A7_transport_validation(mats):
 def A8_ribbons(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
     """Nanoribbon scaling, critical width and family screening.
 
+    nd_ref, the point-defect density of the reference film, is the
+    lateral-force-microscopy count of solid-source CVD WS2 monolayers
+    (Yang et al. 2026, D.YANG_DEFECTS['WS2 SS-CVD']).
+
     The fixed edge charge is not assumed: it is the value returned by the
     adjoint inversion of the published tip-enhanced Raman data (A5).
     """
@@ -309,9 +313,16 @@ def A8_ribbons(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
         Z[i] = transport.ribbon_current_density_uA_um(mats['MoS2'], Wg, nd,
                                                       **base)
     # growth-technology bands, from the inverted defect densities
-    tech = {'exfoliated': 2e11, 'SS-CVD monolayer': 1.3e12,
-            'ALD annealed': 5.4e12, 'ALD as-grown': 7.3e12,
-            'sputtered': 2.2e13, 'MOCVD WSe2': 5.3e13}
+    # Lateral-force-microscopy counts of Yang et al. (2026) and the Raman
+    # inversion of the films of Nattoo et al. (2025) with the MoS2 constant.
+    _nat = {e['label']: e['R_LA'] / (D.MIGNUZZI['C_A'] * 1e-14)
+            for e in D.NATTOO}
+    tech = {'self-flux WSe2': D.YANG_DEFECTS['WSe2 self-flux'][0],
+            'SS-CVD WS2': D.YANG_DEFECTS['WS2 SS-CVD'][0],
+            'ALD annealed': _nat['ALD annealed'],
+            'ALD as-grown': _nat['ALD as-grown'],
+            'sputtered': _nat['sputtered as-grown'],
+            'MOCVD WSe2': D.YANG_DEFECTS['WSe2 MOCVD'][0]}
     tech_mu = {k: float(transport.sheet_mobility(mats['MoS2'], v)[0])
                for k, v in tech.items()}
 

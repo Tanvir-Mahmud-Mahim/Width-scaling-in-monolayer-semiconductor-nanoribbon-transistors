@@ -300,7 +300,7 @@ def fig1(res):
     _note(ax, 0.045, 0.96, 'dashed line:\nequality')
     _panel(ax, '(b)')
 
-    # ---- (c) the two strain lever arms --------------------------------
+    # ---- (c) the two strain sensitivities -----------------------------
     ax = fig.add_subplot(gs[2])
     kv = res['krayev']
     vals = [abs(kv['dwA_deps']), abs(kv['dw2LA_deps'])]
@@ -546,7 +546,7 @@ def fig3(res):
     man = [m for m in man if m is not None]
     if man:
         ax.clabel(cs, fontsize=5.4, fmt='%d', inline_spacing=1, manual=man)
-    short = {'exfoliated': 'exfoliated', 'SS-CVD monolayer': 'SS-CVD',
+    short = {'self-flux WSe2': 'self-flux', 'SS-CVD WS2': 'SS-CVD',
              'ALD annealed': 'ALD ann.', 'ALD as-grown': 'ALD as-gr.',
              'sputtered': 'sputtered', 'MOCVD WSe2': 'MOCVD'}
     items = sorted(rb['tech'].items(), key=lambda kv: kv[1])
