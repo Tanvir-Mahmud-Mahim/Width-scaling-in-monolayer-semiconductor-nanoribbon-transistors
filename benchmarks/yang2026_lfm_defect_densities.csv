@@ -1,0 +1,7 @@
+"# Surface defect densities counted by lateral force microscopy, read from Yang et al. (2026), ACS Appl. Mater. Interfaces 18, 10161. SS-CVD is solid-source CVD. The WS2 value sets the point-defect density of the reference film in the article."
+film,n_d_cm-2,err_upper_cm-2
+WSe2 self-flux,730000000000.0,180000000000.0
+WS2 SS-CVD,1300000000000.0,500000000000.0
+WSe2 SS-CVD,2200000000000.0,300000000000.0
+WSe2 MOCVD,53000000000000.0,16000000000000.0
+WSe2 device,5900000000000.0,1300000000000.0
