@@ -1,7 +1,7 @@
-# Threshold-voltage values quoted from the text of the cited works; an empty etch field means the etch is not used in the article.
+# Threshold-voltage values quoted from the text of the cited works.
 study,etch,gate,quantity,value
 "Lan et al., Nat. Commun. 17, 7386 (2026)",Cl2/O2 ICP-RIE,"3 nm HfO2, kappa ~10","dV_T,cc 540 nm -> 35 nm (V)",0.25
 "Kotekar-Patil et al., Appl. Phys. Lett. 114, 013508 (2019)",SF6 plasma,300 nm SiO2,V_th of 50 nm ribbons (V),20 31 33.4
 "Kotekar-Patil et al., Appl. Phys. Lett. 114, 013508 (2019)",unetched,300 nm SiO2,V_th range of unetched devices (V),-30 to -10
-"Liu, Gu and Ye, IEEE Electron Device Lett. 33, 1273 (2012)",,"300 nm SiO2, 6-11 nm thick (multilayer) bodies",width below which V_th first shifts positive (nm),200
-"Liu, Gu and Ye, IEEE Electron Device Lett. 33, 1273 (2012)",,"300 nm SiO2, 6 nm thick body","total V_th shift, wide ribbons -> 60 nm (V)",50
+"Liu, Gu and Ye, IEEE Electron Device Lett. 33, 1273 (2012)",BCl3/Ar plasma,"300 nm SiO2, 6-11 nm thick (multilayer) bodies",width below which V_th first shifts positive (nm),200
+"Liu, Gu and Ye, IEEE Electron Device Lett. 33, 1273 (2012)",BCl3/Ar plasma,"300 nm SiO2, 6 nm thick body","total V_th shift, wide ribbons -> 60 nm (V)",50

@@ -1,4 +1,4 @@
-"# Tip-enhanced Raman shifts at the edges and at one interior inhomogeneity of one lithographically patterned, vacuum-annealed monolayer MoS2 nanoribbon on gold, read from Krayev et al. (2026), Appl. Phys. Lett. 128, 203102. No uncertainty is stated for the shifts. Inhomogeneity 50-100 nm."
+"# Tip-enhanced Raman shifts (785 nm excitation) at the edges and at one interior inhomogeneity of one CVD-grown monolayer MoS2 nanoribbon patterned by electron-beam lithography and XeF2 etching, vacuum annealed and imaged on gold, read from Krayev et al. (2026), Appl. Phys. Lett. 128, 203102. No uncertainty is stated for the shifts. Inhomogeneity 50-100 nm."
 location,delta_omega_A1p_cm-1,delta_omega_2LA_cm-1
 ribbon edge,-0.5,0.0
 interior inhomogeneity,-0.6,-2.8
