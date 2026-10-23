@@ -95,9 +95,10 @@ def export_benchmarks(out_dir):
          [['ribbon edge', D.KRAYEV['edge_dwA'], D.KRAYEV['edge_dw2LA']],
           ['interior inhomogeneity', D.KRAYEV['spot_dwA'],
            D.KRAYEV['spot_dw2LA']]],
-         'Tip-enhanced Raman shifts at the edges and at one interior '
-         'inhomogeneity of one lithographically patterned, vacuum-annealed '
-         'monolayer MoS2 nanoribbon on gold, read from Krayev et al. (2026), '
+         'Tip-enhanced Raman shifts (785 nm excitation) at the edges and at '
+         'one interior inhomogeneity of one CVD-grown monolayer MoS2 '
+         'nanoribbon patterned by electron-beam lithography and XeF2 etching, '
+         'vacuum annealed and imaged on gold, read from Krayev et al. (2026), '
          'Appl. Phys. Lett. 128, 203102. No uncertainty is stated for the '
          'shifts. Inhomogeneity %.0f-%.0f nm.'
          % tuple(D.KRAYEV['inhom_size_nm']))
@@ -124,17 +125,16 @@ def export_benchmarks(out_dir):
           ['Kotekar-Patil et al., Appl. Phys. Lett. 114, 013508 (2019)',
            'unetched', '300 nm SiO2', 'V_th range of unetched devices (V)',
            '%g to %g' % D.KOTEKAR2019['Vth_unetched_V']],
-          ['Liu, Gu and Ye, IEEE Electron Device Lett. 33, 1273 (2012)', '',
-           '300 nm SiO2, 6-11 nm thick (multilayer) bodies',
+          ['Liu, Gu and Ye, IEEE Electron Device Lett. 33, 1273 (2012)',
+           D.LIU2012['etch'], '300 nm SiO2, 6-11 nm thick (multilayer) bodies',
            'width below which V_th first shifts positive (nm)',
            '%g' % D.LIU2012['W_onset_nm']],
-          ['Liu, Gu and Ye, IEEE Electron Device Lett. 33, 1273 (2012)', '',
-           '300 nm SiO2, 6 nm thick body',
+          ['Liu, Gu and Ye, IEEE Electron Device Lett. 33, 1273 (2012)',
+           D.LIU2012['etch'], '300 nm SiO2, 6 nm thick body',
            'total V_th shift, wide ribbons -> %g nm (V)'
            % D.LIU2012['narrowest_nm'],
            '%g' % D.LIU2012['dVT_total_V']]],
-         'Threshold-voltage values quoted from the text of the cited works; '
-         'an empty etch field means the etch is not used in the article.')
+         'Threshold-voltage values quoted from the text of the cited works.')
 
     dump('nattoo2025_disorder_activated_raman_and_mobility.csv',
          ['film', 'R_shoulder', 'R_shoulder_err', 'R_LA', 'R_LA_err',
@@ -171,7 +171,7 @@ def export_benchmarks(out_dir):
          'Mode Grueneisen parameters measured under biaxial strain, read from '
          'Michail et al. (2024), in the convention gamma = -(1/2 w) dw/deps. '
          'That work covers both optical modes of MoS2 and the A1p mode and '
-         'the 2LA overtone of WSe2. Blank entries were not measured.')
+         'the 2LA overtone of WSe2. WSe2 values are means over the five devices of that work. Blank entries were not measured.')
 
     dump('gauge_factors_exciton.csv',
          ['material', 'gauge_meV_per_percent', 'gauge_err'],
