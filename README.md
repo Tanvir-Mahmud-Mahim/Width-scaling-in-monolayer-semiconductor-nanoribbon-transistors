@@ -2,7 +2,7 @@
 
 Complete code and data for
 
-> **Two Raman Phonons Quantify the Fixed Edge Charge Left by Patterning Monolayer Transition Metal Dichalcogenides**
+> **Two Raman Phonons and Transistor Thresholds Quantify the Fixed Edge Charge Left by Patterning Monolayer Transition Metal Dichalcogenides**
 > Tanvir M. Mahim and M. Mosaddequr Rahman, Department of Electrical and Electronic Engineering, BRAC University, Dhaka 1212, Bangladesh.
 
 Data and benchmarks of record: [10.5281/zenodo.21670315](https://doi.org/10.5281/zenodo.21670315) (concept DOI, resolves to the latest version)
@@ -15,25 +15,26 @@ Monolayer transition metal dichalcogenide nanoribbon transistors now operate at
 channel widths of 25 nm, but what physically stops the width from shrinking
 further has not been settled. Three candidates compete: geometric edge
 roughness, process damage extending beyond the patterned line, and charge held
-at the etched edge. Distinguishing them needs the edge charge density, and none
-had been extracted.
+at the etched edge. Distinguishing them needs the edge charge density, and to
+our knowledge none had been reported.
 
 A phonon frequency responds to strain and to carrier density at once, so a
 single Raman mode cannot separate the two. This work uses a pair chosen so that
 the two effects decouple:
 
-* the first-order **A₁′** mode, whose out-of-plane symmetry makes it couple
-  selectively to the K-valley electron density, and
+* the first-order **A₁′** mode, an out-of-plane vibration that softens
+  strongly when electrons are added (Chakraborty et al. 2012), and
 * the disorder-activated **2LA(M)** acoustic overtone, which is strongly strain
-  sensitive. Its charge response has not been measured for MoS₂ (in WS₂ and
-  WSe₂ it softens once a second conduction valley fills), so the code computes
-  how large that response would have to be to reverse the result.
+  sensitive. We know of no measurement of its charge response in MoS₂ (in
+  gated WS₂ and WSe₂ it softens together with A₁′; Sohier et al. 2019), so the
+  code computes how large that response would have to be to reverse the
+  result.
 
-First-principles calculations on MoS₂, WS₂, MoSe₂ and WSe₂ give the two strain
-lever arms. The acoustic overtone turns out to be about **4.1 times** more
+First-principles calculations on MoS₂, WS₂, MoSe₂ and WSe₂ give the strain
+sensitivity of each peak. The acoustic overtone turns out to be about **4.1 times** more
 strain sensitive than A₁′, which is what makes the pair well conditioned.
-Applying the pair to published tip-enhanced Raman data from one patterned
-MoS₂ nanoribbon on gold gives a local excess of **2.3 × 10¹² ± 7.6 × 10¹¹ cm⁻²**
+Applying the pair to published tip-enhanced Raman data from one XeF₂-etched
+MoS₂ nanoribbon on gold (Krayev et al. 2026) gives a local excess of **2.3 × 10¹² ± 7.6 × 10¹¹ cm⁻²**
 of band electrons at its edges with strain below 0.03 %, while an interior
 inhomogeneity in the same data is 0.134 % tension with no significant charge.
 Because this rests on one data set, `rapid/uncertainty.py` (stage A16) tests it
@@ -53,9 +54,9 @@ Because those thresholds are taken at a constant current of 100 nA/µm, where
 the channel holds few electrons, the parallel-plate reading is not
 self-consistent there. Stage A18 (`rapid/exact.py`, with the solver in
 `rapid/electrostatics.py`) inverts the same data with the exact
-electrostatics of a gated sheet: the layered-dielectric Green's function with
-Keldysh in-plane screening, Fermi-Dirac electrons in the K and Q valleys solved
-self-consistently, and the constant-current criterion at each device's channel
+electrostatics of a gated sheet: the field of a charge in the layered gate
+stack, including the screening by the monolayer itself, with Fermi-Dirac
+electrons in the K and Q valleys solved self-consistently, and the constant-current criterion at each device's channel
 length. The solver is checked against a finite-difference solution (1.3 %),
 against a linear subthreshold model and against the parallel-plate limit in
 strong inversion. It shows that charge confined to the outermost 2 nm cannot

@@ -176,8 +176,10 @@ def export_benchmarks(out_dir):
     dump('gauge_factors_exciton.csv',
          ['material', 'gauge_meV_per_percent', 'gauge_err'],
          [[m, v[0], v[1]] for m, v in D.GAUGE.items()],
-         'Measured A-exciton biaxial gauge factors used as the independent '
-         'check on the computed gap deformation potentials.')
+         'Measured neutral A-exciton biaxial gauge factors (substrate '
+         'deformation), read from Henriquez-Guerra et al. (2023), ACS Appl. '
+         'Mater. Interfaces 15, 57369, Table 1, used as the independent check '
+         'on the computed gap deformation potentials.')
 
     dump('halo_widths.csv', ['process', 'halo_width_nm'],
          [['resist-masked XeF2 etch (modelling choice, not measured)', D.HALO['GENTLE_nm']],
@@ -189,7 +191,16 @@ def export_benchmarks(out_dir):
     dump('mignuzzi2015_calibration.csv', ['quantity', 'value', 'err', 'units'],
          [['C_A', D.MIGNUZZI['C_A'], D.MIGNUZZI['C_A_err'], 'nm^2']],
          'Disorder-activated Raman calibration constant of monolayer MoS2 at '
-         '532 nm, read from Mignuzzi et al. (2015).')
+         '532 nm, I(LA)/I(A1p) = C_A n_d, read from Mignuzzi et al. (2015), '
+         'Phys. Rev. B 91, 195411.')
+
+    dump('yang2026_lfm_defect_densities.csv',
+         ['film', 'n_d_cm-2', 'err_upper_cm-2'],
+         [[k, v[0], v[1]] for k, v in D.YANG_DEFECTS.items()],
+         'Surface defect densities counted by lateral force microscopy, read '
+         'from Yang et al. (2026), ACS Appl. Mater. Interfaces 18, 10161. '
+         'SS-CVD is solid-source CVD. The WS2 value sets the point-defect '
+         'density of the reference film in the article.')
     return written
 
 
@@ -264,8 +275,9 @@ def _write_zenodo_metadata(out, bench):
             'on-currents, measured mode Grüneisen parameters, A-exciton '
             'gauge factors, damage-halo widths, the Raman calibration '
             'constant, and the threshold voltages of nanoribbon transistors '
-            'against width (digitised) with the threshold shifts of three '
-            'further device studies.</p>'
+            'against width (digitised) with the threshold values quoted by three '
+            'further device studies, and the defect densities counted by '
+            'lateral force microscopy that set the reference film.</p>'
             '<p><b>results/</b> the machine-readable results file from which '
             'every number, table and figure in the article is generated, and '
             'the generated LaTeX macro file, and the cached intermediate '
