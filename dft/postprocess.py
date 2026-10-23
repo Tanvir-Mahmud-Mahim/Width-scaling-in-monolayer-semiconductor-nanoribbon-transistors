@@ -27,7 +27,7 @@ CM1 = 1.0 / (2.0 * np.pi * 2.99792458e10)      # rad/s -> cm^-1
 STRAINS = [-0.02, -0.01, 0.0, 0.01, 0.02]
 # measured zone-centre frequencies used as the anchor (see materials.PHONON)
 WEXP = {'MoS2': (385.0, 403.0), 'WS2': (356.0, 417.5),
-        'MoSe2': (287.0, 241.0), 'WSe2': (249.4, 250.2)}
+        'MoSe2': (287.0, 240.5), 'WSe2': (249.4, 250.2)}
 EA = {'MoS2': 1.880, 'WS2': 2.010, 'MoSe2': 1.570, 'WSe2': 1.650}
 WLA_EXP = {'MoS2': 227.6, 'WS2': 176.0, 'WSe2': 130.0}
 E_LASER = 1239.84 / 532.0                       # 2.331 eV
