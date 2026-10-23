@@ -29,7 +29,10 @@ DIST = os.path.join(HERE, 'dist')
 # are uploaded, so the deposit can carry its own DOI, and the manuscript cites
 # that same version rather than a moving target.
 ZENODO_CONCEPT_DOI = '10.5281/zenodo.21670315'
-ZENODO_DOI = '10.5281/zenodo.22053747'          # v5, reserved before upload
+# The revised article (first revision) cites the concept DOI, so the files of
+# every version carry it; v5, the version that accompanied the original
+# submission, is 10.5281/zenodo.22053747.
+ZENODO_DOI = ZENODO_CONCEPT_DOI
 GITHUB_URL = ('https://github.com/Tanvir-Mahmud-Mahim/'
               'Width-scaling-in-monolayer-semiconductor-nanoribbon-transistors')
 TITLE = ('Data, benchmarks and code for: Two Raman phonons quantify the '
@@ -91,10 +94,36 @@ def export_benchmarks(out_dir):
          [['ribbon edge', D.KRAYEV['edge_dwA'], D.KRAYEV['edge_dw2LA']],
           ['interior inhomogeneity', D.KRAYEV['spot_dwA'],
            D.KRAYEV['spot_dw2LA']]],
-         'Tip-enhanced Raman shifts of lithographically patterned monolayer '
-         'MoS2 nanoribbons, read from Krayev et al. (2026). Ribbon width '
-         '%.0f nm; inhomogeneity %.0f-%.0f nm.'
-         % (D.KRAYEV['ribbon_width_nm'], *D.KRAYEV['inhom_size_nm']))
+         'Tip-enhanced Raman shifts at the edges and at one interior '
+         'inhomogeneity of one lithographically patterned, vacuum-annealed '
+         'monolayer MoS2 nanoribbon on gold, read from Krayev et al. (2026), '
+         'Appl. Phys. Lett. 128, 203102. No uncertainty is stated for the '
+         'shifts. Inhomogeneity %.0f-%.0f nm.'
+         % tuple(D.KRAYEV['inhom_size_nm']))
+
+    dump('pena2026_threshold_voltage_vs_width_digitised.csv',
+         ['width_nm', 'channel_length_um', 'V_T_cc_V'],
+         [list(r) for r in D.PENA_VT],
+         'Threshold voltage V_T,cc (constant current 100 nA/um, forward '
+         'sweep) of monolayer MoS2 transistors made by e-beam lithography '
+         'and XeF2 etching on ~5.5 nm HfO2, DIGITISED by the authors of this '
+         'archive from Extended Data Fig. 4 of Pena et al., Nat. '
+         'Nanotechnol. 21, 803 (2026), doi:10.1038/s41565-026-02161-w. '
+         'Reading uncertainty about 0.01-0.02 V.')
+
+    dump('threshold_shift_other_device_studies.csv',
+         ['study', 'etch', 'gate', 'quantity', 'value'],
+         [['Lan et al., Nat. Commun. 17, 7386 (2026)', D.LAN2026['etch'],
+           '3 nm HfO2, kappa ~10', 'dV_T,cc 540 nm -> 35 nm (V)',
+           D.LAN2026['dVT_V']],
+          ['Kotekar-Patil et al., Appl. Phys. Lett. 114, 013508 (2019)',
+           D.KOTEKAR2019['etch'], '300 nm SiO2',
+           'V_th of 50 nm ribbons (V)',
+           ' '.join('%g' % v for v in D.KOTEKAR2019['Vth_ribbon_V'])],
+          ['Kotekar-Patil et al., Appl. Phys. Lett. 114, 013508 (2019)',
+           'unetched', '300 nm SiO2', 'V_th range of unetched devices (V)',
+           '%g to %g' % D.KOTEKAR2019['Vth_unetched_V']]],
+         'Threshold-voltage values quoted from the text of the cited works.')
 
     dump('nattoo2025_disorder_activated_raman_and_mobility.csv',
          ['film', 'R_shoulder', 'R_shoulder_err', 'R_LA', 'R_LA_err',
@@ -140,8 +169,8 @@ def export_benchmarks(out_dir):
          'check on the computed gap deformation potentials.')
 
     dump('halo_widths.csv', ['process', 'halo_width_nm'],
-         [['XeF2 dry etch (bound, not measured)', D.HALO['GENTLE_nm']],
-          ['helium-ion milling (measured)', D.HALO['HIM_nm']]],
+         [['resist-masked XeF2 etch (modelling choice, not measured)', D.HALO['GENTLE_nm']],
+          ['XeF2-assisted helium-ion-beam etching (measured)', D.HALO['HIM_nm']]],
          'Process-induced damage halo widths. Only the helium-ion value is '
          'measured; the gentle-etch value is a modelling choice that is '
          'scanned over two orders of magnitude in the article.')
@@ -175,6 +204,9 @@ def build_zenodo():
           os.path.join(out, 'results', 'numbers.tex'))
     _copy(os.path.join(HERE, 'map_recovery.npz'),
           os.path.join(out, 'results', 'map_recovery.npz'))
+    for f in ('exact_cache.json', 'fringe_cache.json'):
+        _copy(os.path.join(HERE, f), os.path.join(out, 'results', f))
+        _copy(os.path.join(HERE, f), os.path.join(out, 'code', f))
 
     # digitised published benchmarks
     bench = export_benchmarks(os.path.join(out, 'benchmarks'))
@@ -220,11 +252,16 @@ def _write_zenodo_metadata(out, bench):
             'tip-enhanced Raman shifts at nanoribbon edges, disorder-activated '
             'Raman ratios and mobilities of deposited films, nanoribbon '
             'on-currents, measured mode Grüneisen parameters, A-exciton '
-            'gauge factors, damage-halo widths and the Raman calibration '
-            'constant.</p>'
+            'gauge factors, damage-halo widths, the Raman calibration '
+            'constant, and the threshold voltages of nanoribbon transistors '
+            'against width (digitised) with the threshold shifts of three '
+            'further device studies.</p>'
             '<p><b>results/</b> the machine-readable results file from which '
             'every number, table and figure in the article is generated, and '
-            'the generated LaTeX macro file.</p>'
+            'the generated LaTeX macro file, and the cached intermediate '
+            'results of the self-consistent electrostatic inversion of the '
+            'threshold data (exact_cache.json) and of the line-capacitance '
+            'correction (fringe_cache.json).</p>'
             '<p><b>figures/</b> the figures as published.</p>'
             '<p><b>code/</b> the complete analysis code. The development '
             'repository is at ' + GITHUB_URL + '</p>'),
@@ -300,7 +337,11 @@ repository-code: "{GITHUB_URL}"
         'keyed by the numerical experiment that produced it. `numbers.tex` is',
         'the generated LaTeX macro file, so each macro in the manuscript can be',
         'traced to a value here. `map_recovery.npz` holds the true and',
-        'recovered fields of the synthetic hyperspectral recovery test.', '',
+        'recovered fields of the synthetic hyperspectral recovery test.',
+        '`exact_cache.json` holds the intermediate results of stage A18, the',
+        'self-consistent electrostatic inversion of the threshold data, and',
+        '`fringe_cache.json` the line-capacitance factors of the gate stacks;',
+        'delete them to recompute.', '',
         '## figures/', '',
         'The figures as published, in vector PDF.', '',
         '## code/', '',
@@ -322,7 +363,8 @@ def build_github():
     for d in ('rapid', 'dft', 'figs'):
         _copytree(os.path.join(HERE, d), os.path.join(out, d),
                   skip=('__pycache__', 'runs'))
-    for f in ('finalize.sh', 'results.json', 'map_recovery.npz'):
+    for f in ('finalize.sh', 'results.json', 'map_recovery.npz',
+              'exact_cache.json', 'fringe_cache.json'):
         _copy(os.path.join(HERE, f), os.path.join(out, f))
     # The manuscript sources and the built PDFs are deliberately left out of
     # the public repository; the archive holds code, data and figures only.

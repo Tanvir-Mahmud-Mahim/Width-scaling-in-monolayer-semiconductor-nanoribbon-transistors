@@ -1,11 +1,11 @@
 # Width scaling in monolayer semiconductor nanoribbon transistors
 
-Complete code, data and manuscript sources for
+Complete code and data for
 
 > **Two Raman Phonons Quantify the Fixed Edge Charge Left by Patterning Monolayer Transition Metal Dichalcogenides**
 > Tanvir M. Mahim and M. Mosaddequr Rahman, Department of Electrical and Electronic Engineering, BRAC University, Dhaka 1212, Bangladesh.
 
-Data and benchmarks of record: [10.5281/zenodo.22053747](https://doi.org/10.5281/zenodo.22053747)
+Data and benchmarks of record: [10.5281/zenodo.21670315](https://doi.org/10.5281/zenodo.21670315) (concept DOI, resolves to the latest version)
 
 ---
 
@@ -14,9 +14,9 @@ Data and benchmarks of record: [10.5281/zenodo.22053747](https://doi.org/10.5281
 Monolayer transition metal dichalcogenide nanoribbon transistors now operate at
 channel widths of 25 nm, but what physically stops the width from shrinking
 further has not been settled. Three candidates compete: geometric edge
-roughness, process damage extending beyond the patterned line, and fixed charge
-trapped at the etched edge. Distinguishing them needs a measurement of the edge
-charge density, and none existed.
+roughness, process damage extending beyond the patterned line, and charge held
+at the etched edge. Distinguishing them needs the edge charge density, and none
+had been extracted.
 
 A phonon frequency responds to strain and to carrier density at once, so a
 single Raman mode cannot separate the two. This work uses a pair chosen so that
@@ -25,23 +25,56 @@ the two effects decouple:
 * the first-order **A₁′** mode, whose out-of-plane symmetry makes it couple
   selectively to the K-valley electron density, and
 * the disorder-activated **2LA(M)** acoustic overtone, which is strongly strain
-  sensitive and, to the accuracy of any published measurement, charge
-  insensitive.
+  sensitive. Its charge response has not been measured for MoS₂ (in WS₂ and
+  WSe₂ it softens once a second conduction valley fills), so the code computes
+  how large that response would have to be to reverse the result.
 
 First-principles calculations on MoS₂, WS₂, MoSe₂ and WSe₂ give the two strain
 lever arms. The acoustic overtone turns out to be about **4.1 times** more
 strain sensitive than A₁′, which is what makes the pair well conditioned.
-Applying the pair to published tip-enhanced Raman maps of patterned MoS₂
-nanoribbons gives a local excess of **2.3 × 10¹² ± 7.6 × 10¹¹ cm⁻²** of band
-electrons at the edge with strain below 0.03 %, while an interior inhomogeneity
-in the same data is pure 0.134 % tension with no significant charge.
+Applying the pair to published tip-enhanced Raman data from one patterned
+MoS₂ nanoribbon on gold gives a local excess of **2.3 × 10¹² ± 7.6 × 10¹¹ cm⁻²**
+of band electrons at its edges with strain below 0.03 %, while an interior
+inhomogeneity in the same data is 0.134 % tension with no significant charge.
+Because this rests on one data set, `rapid/uncertainty.py` (stage A16) tests it
+against larger shift noise, an unmeasured charge response of the overtone and
+an internal closure check. The spectrum fixes the size of the excess but not
+the sign of the fixed charge behind it, so both signs are carried forward.
 
-Carried into an electrostatic and transport model, charge of that size explains
-a decade-old depletion-to-enhancement transition observed when nanoribbons are
-trimmed below about 200 nm on thick oxide, and is negligible on a thin
-high-κ gate. There, the patterning damage halo takes over and sets a critical
-width of about **17 nm**. As-grown defect density mainly rescales the current
-rather than the width limit.
+As an independent electrical test (stage A17 in `rapid/analysis.py`), the
+published threshold voltages of 37 XeF₂-etched monolayer MoS₂ ribbon transistors
+from the same research group on a thin HfO₂ gate (Peña et al. 2026, Extended Data Fig. 4, digitised;
+the values are in `rapid/datasets.py` and `benchmarks/`) are fitted at equal
+channel length. They rise on narrowing, the sign of net negative edge charge;
+read through the parallel-plate dV_T = 2qσ/(C_ox W) they give about
+**2.3 × 10⁷ cm⁻¹** per edge.
+
+Because those thresholds are taken at a constant current of 100 nA/µm, where
+the channel holds few electrons, the parallel-plate reading is not
+self-consistent there. Stage A18 (`rapid/exact.py`, with the solver in
+`rapid/electrostatics.py`) inverts the same data with the exact
+electrostatics of a gated sheet: the layered-dielectric Green's function with
+Keldysh in-plane screening, Fermi-Dirac electrons in the K and Q valleys solved
+self-consistently, and the constant-current criterion at each device's channel
+length. The solver is checked against a finite-difference solution (1.3 %),
+against a linear subthreshold model and against the parallel-plate limit in
+strong inversion. It shows that charge confined to the outermost 2 nm cannot
+produce the 75 nm threshold offset even at three electrons per edge unit cell,
+and fits a net negative charge density N₀ exp(−d/ℓ) with **ℓ ≈ 12 nm**,
+**N₀ ≈ 3.6 × 10¹³ cm⁻²** and **σ ≈ 4.3 × 10⁷ cm⁻¹** per edge, about 19 times
+the Raman value. The same solver reads thick-oxide SF₆-etched ribbons
+(Kotekar-Patil et al. 2019), whose thresholds measure the amount of charge
+almost independently of its depth, as about 6.5 × 10⁷ cm⁻¹. The intermediate
+results of stage A18 are cached in `exact_cache.json`; delete it to recompute
+(about forty minutes on two cores).
+
+Carried into an electrostatic and transport model, the two values bracket the
+predicted critical width on a thin high-κ gate with an assumed 5 nm damage
+halo: about **17 nm** with the Raman charge and about **96 nm** with the
+threshold-derived charge profile at equal gate voltage; most of the latter is a
+threshold shift, and at equal overdrive above each ribbon's own threshold it is
+about 26 nm. These are model predictions. As-grown
+defect density mainly rescales the current rather than the width limit.
 
 ---
 
@@ -76,6 +109,9 @@ rapid/          the analysis package
   device.py       self-consistent Poisson and drift-diffusion device solve
   quantum.py      NEGF transmission, Schottky contact, Landauer current
   analysis.py     every numerical experiment reported in the article
+  electrostatics.py  exact gated-sheet electrostatics: layered Green's
+                  function, Keldysh screening, self-consistent electrons
+  exact.py        stage A18, exact inversion of published threshold data
   uncertainty.py  Monte Carlo uncertainty propagation, validity bounds and
                   the independent-mass-set sensitivity test
   figures.py      main-text figures
@@ -164,11 +200,21 @@ identical) bounds the spin-orbit effect on the same derivatives at the
 few-per-cent level.
 
 **Separation.** The two Raman shifts form a 2 × 2 system whose lower-right
-entry is zero, which is the physical content of the method. Because the
-overtone is measured not to shift at the edge, the strain is pinned near zero
-for any non-zero acoustic Grüneisen parameter, so the edge result does not
-depend on the calculated value. The assumption that the overtone is charge
-insensitive is bounded rather than asserted.
+entry, the charge response of the overtone, is taken as zero for MoS₂. Because
+the overtone does not shift at the edge, the strain is pinned near zero for any
+non-zero acoustic Grüneisen parameter, so the edge result does not depend on the
+calculated value. If the overtone did respond to charge, at a fraction f of the
+frequency-scaled A₁′ rate, the sign of the result would reverse only for
+f > γ_LA/γ_A1′; stage A16 evaluates that threshold and the result for f up to
+one half.
+
+**Robustness.** Stage A16 repeats the Monte Carlo with the shift noise raised
+to more than three times the assumed value, scans the overtone charge response
+to the sign-reversal threshold, checks that the strain read from the overtone
+at the interior spot predicts the A₁′ shift there, and recomputes the critical
+width for edge charge from the opposite sign to three times the extracted
+value, for halos of 1 to 20 nm and for a damage contrast inside the halo of 5
+to 100 times. Figure S6 of the supplement is drawn from these results.
 
 **Uncertainty.** Every stated input uncertainty of the edge inversion,
 both Grüneisen parameters over their full computed-to-measured brackets,
@@ -222,7 +268,7 @@ of 1 to 2 %, so they are firmly diffusive; a barrier-free contact to a 2D
 channel cannot go below 28 to 39 Ω·µm; and the p-type WSe₂ current corresponds
 to a barrier of 0.26 eV. The compact expression is retained only to sweep the design map and
 the critical-width scans; it is high by a nearly constant factor 1.56, and the
-critical width, being a ratio, differs between the two models by 7 %. Exactly two constants are calibrated
+critical width, being a ratio, differs between the two models by 6 %. Exactly two constants are calibrated
 rather than computed or measured, both once and then held fixed: the neutral
 point-defect potential and the interface trap density of each gate stack.
 `rapid/materials.py` carries a provenance tag on every entry, reproduced as
@@ -234,7 +280,8 @@ Table S3 of the supplement.
 
 The archive of record, including the raw first-principles output and every
 digitised published benchmark, is deposited at Zenodo:
-**[10.5281/zenodo.22053747](https://doi.org/10.5281/zenodo.22053747)**.
+**[10.5281/zenodo.21670315](https://doi.org/10.5281/zenodo.21670315)** (concept
+DOI; it always resolves to the latest version).
 
 `benchmarks/` in this repository holds the same benchmark files as flat CSV,
 each with its source stated in the header line.
