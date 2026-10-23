@@ -15,7 +15,7 @@ from scipy.optimize import brentq
 from . import adjoint, spectra, transport, datasets as D
 from . import device, quantum, uncertainty
 from .materials import (all_materials, MATERIALS, Material,
-                        EPS_HFO2, EPS_SIO2)
+                        EPS_HFO2, EPS_SIO2, EPS0, QE)
 
 OUT = os.path.join(os.path.dirname(__file__), '..', 'results.json')
 
@@ -235,18 +235,14 @@ def A5b_krayev_robustness(mats, gvals=None):
 
 def A6_peng(mats):
     """Invert the hyperspectral differential-reflectance blue shift measured
-    at a WS2 grain boundary, and the V-doping series."""
+    at a WS2 grain boundary."""
     m = mats['WS2']
-    dE = D.PENG['dE_gb']                       # eV blue shift
+    dE = D.PENG['EA_gb'] - D.PENG['EA_grain']  # eV blue shift
+    assert abs(dE - D.PENG['dE_gb']) < 1e-9
     strain = dE * 1000.0 / m.gaugeA            # percent (gauge is meV per %)
-    # doping series: attribute the redshift entirely to added holes
-    ser = []
-    for x, E in D.PENG['vdoped_peak']:
-        dn = (E - D.PENG['vdoped_peak'][0][1]) * 1000.0 / spectra.CHI_DOP
-        ser.append(dict(V_percent=x, EA=E, n_1e13=float(dn)))
     return dict(gb_strain_pct=float(strain),
                 gb_strain_reported=D.PENG['strain_gb_reported'],
-                gauge=m.gaugeA, vseries=ser)
+                gauge=m.gaugeA)
 
 
 def A7_transport_validation(mats):
@@ -478,7 +474,8 @@ def A10_self_consistent(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
         curves[mname] = dict(
             W=Wc_curve.tolist(),
             I=[device.solve_iv(mats[mname], w, nd_ref, carrier=car,
-                               Rc_ohm_um=Rc0, **kw_c)['I_uA_um']
+                               Rc_ohm_um=D.PENA['Rc_by_material'][mname],
+                               **kw_c)['I_uA_um']
                for w in Wc_curve])
     out['curves'] = curves
 
@@ -496,7 +493,7 @@ def A10_self_consistent(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
         r0 = device.solve_iv(mats[mname], w, nd_ref, carrier=car,
                              Rc_ohm_um=0.0, **kwd)
         rc = device.solve_iv(mats[mname], w, nd_ref, carrier=car,
-                             Rc_ohm_um=Rc0, **kwd)
+                             Rc_ohm_um=D.PENA['Rc_by_material'][mname], **kwd)
         dev[name] = dict(material=mname, carrier=car, W_nm=w, Lch_nm=L,
                          stack=stack, I_ideal=r0['I_uA_um'],
                          I_with_Rc=rc['I_uA_um'], measured=meas,
@@ -507,6 +504,7 @@ def A10_self_consistent(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
     out['ratio_max'] = float(max(d['ratio'] for d in dev.values()
                                  if d['carrier'] == 'e'))
     out['Rc_measured_ohm_um'] = float(Rc0)
+    out['Rc_by_material'] = dict(D.PENA['Rc_by_material'])
     return out
 
 
@@ -615,7 +613,7 @@ def A12_quantum(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
         return float(brentq(f, 0.0, 0.8, xtol=1e-4))
 
     out['phi_from_measured_Rc'] = {
-        n: _phi_for_R(mats[n], 'e', D.PENA['Rc_ohm_um'])
+        n: _phi_for_R(mats[n], 'e', D.PENA['Rc_by_material'][n])
         for n in ('MoS2', 'WS2')}
 
     # --- a resistor and a barrier of the same low-bias resistance are not
@@ -687,6 +685,139 @@ def A12_quantum(mats, nd_ref=1.3e12, sigma_line=None, w_edge=10.0):
     return out
 
 
+
+def A17_electrical(mats, n_edge_cm2, w_edge=10.0, nd_ref=1.3e12, seed=5,
+                   n_boot=5000):
+    """Edge line charge from published threshold voltages against width.
+
+    An independent route to the same quantity as A5: Eq. (1) of the article,
+    dV_T = 2 q sigma / (C_ox W), fitted to measured threshold voltages.  The
+    main data are the V_T,cc of Pena et al. (2026), Extended Data Fig. 4,
+    digitised by us (datasets.PENA_VT): XeF2-etched ribbons from the same group
+    as the tip-enhanced Raman data, on a thin HfO2 gate.  This stage gives the
+    conventional parallel-plate reading; stage A18 (exact.py) shows that it is
+    not self-consistent at the threshold current and replaces it.  Channel-length effects are removed with
+    one free offset per channel length (fixed effects), so the width
+    dependence is read only from devices of equal length.  The uncertainty
+    is the least-squares standard error and, independently, a bootstrap over
+    devices with the stated reading uncertainty added to every value.
+    Three further data sets are used for sign and order of magnitude only.
+    """
+    rng = np.random.default_rng(seed)
+    a = np.array(D.PENA_VT, float)
+    W, L, V = a.T
+    Ls = sorted(set(L))
+
+    def design(Wv, Lv):
+        cols = [(Lv == l).astype(float) for l in Ls]
+        return np.column_stack(cols + [1.0 / (Wv * 1e-7)])   # 1/W in cm^-1
+
+    X = design(W, L)
+    beta, *_ = np.linalg.lstsq(X, V, rcond=None)
+    r = V - X @ beta
+    dof = len(V) - X.shape[1]
+    cov = (r @ r / dof) * np.linalg.inv(X.T @ X)
+    slope, slope_se = float(beta[-1]), float(np.sqrt(cov[-1, -1]))   # V cm
+
+    boot = []
+    err = D.PENA_VT_META['read_uncertainty_V']
+    for _ in range(n_boot):
+        idx = rng.integers(0, len(V), len(V))
+        Xb = design(W[idx], L[idx])
+        if np.linalg.matrix_rank(Xb) < Xb.shape[1]:
+            continue
+        Vb = V[idx] + rng.normal(0.0, err, len(V))
+        boot.append(np.linalg.lstsq(Xb, Vb, rcond=None)[0][-1])
+    boot = np.array(boot)
+
+    # width offsets relative to 850 nm at equal channel length: a check of
+    # the 1/W form of Eq. (1), which predicts their ratio exactly
+    X4 = np.column_stack([(L == l).astype(float) for l in Ls]
+                         + [(W == 75).astype(float), (W == 25).astype(float)])
+    b4, *_ = np.linalg.lstsq(X4, V, rcond=None)
+    r4 = V - X4 @ b4
+    c4 = (r4 @ r4 / (len(V) - X4.shape[1])) * np.linalg.inv(X4.T @ X4)
+    d75, d25 = float(b4[-2]), float(b4[-1])
+    d75e, d25e = float(np.sqrt(c4[-2, -2])), float(np.sqrt(c4[-1, -1]))
+    ratio_pred = (1 / 25.0 - 1 / 850.0) / (1 / 75.0 - 1 / 850.0)
+    ratio = d25 / d75
+    ratio_e = ratio * np.sqrt((d25e / d25) ** 2 + (d75e / d75) ** 2)
+
+    def cox_eot(eot_nm):
+        return 3.9 * EPS0 * 1e-2 / (eot_nm * 1e-7)        # F/cm^2
+
+    sig_ters = transport.edge_line_charge(n_edge_cm2, w_edge)
+    pena = {}
+    for eot in D.PENA_VT_META['EOT_nm']:
+        c = cox_eot(eot)
+        k = c / (2.0 * QE)
+        pena['%.1f' % eot] = dict(
+            Cox=float(c), sigma=float(slope * k), sigma_se=float(slope_se * k),
+            sigma_boot=[float(np.percentile(boot, q) * k)
+                        for q in (2.5, 16, 50, 84, 97.5)],
+            ratio_to_raman=float(slope * k / sig_ters))
+    # the Raman-derived charge, put through the same Eq. (1) on that stack
+    c15 = cox_eot(1.5)
+    pred_d25 = float(2 * QE * sig_ters / c15 * (1 / 25e-7 - 1 / 850e-7))
+    pred_d75 = float(2 * QE * sig_ters / c15 * (1 / 75e-7 - 1 / 850e-7))
+
+    # Lan et al. (2026): Cl2/O2 etch, 3 nm HfO2, kappa ~ 10
+    ln = D.LAN2026
+    c_lan = ln['kappa'] * EPS0 * 1e-2 / (ln['t_HfO2_nm'] * 1e-7)
+    sig_lan = ln['dVT_V'] * c_lan / (2 * QE * (1 / (ln['W_narrow_nm'] * 1e-7)
+                                               - 1 / (ln['W_wide_nm'] * 1e-7)))
+    # Kotekar-Patil et al. (2019) and Liu et al. (2012): thick SiO2, W < t_ox.
+    # Fringing fields couple a narrow ribbon to the gate more strongly than
+    # the parallel-plate C_ox, so the parallel-plate value of sigma read from
+    # a measured shift is a lower bound.
+    kp = D.KOTEKAR2019
+    c300 = transport.COX['SiO2_300nm']
+    dvt_kp = np.mean(kp['Vth_ribbon_V']) - np.mean(kp['Vth_unetched_V'])
+    sig_kp = dvt_kp * c300 * (kp['W_nm'] * 1e-7) / (2 * QE)
+    li = D.LIU2012
+    sig_liu = li['dVT_total_V'] * c300 / (2 * QE * (1 / (li['narrowest_nm'] * 1e-7)
+                                                    - 1 / (li['W_constant_above_nm'] * 1e-7)))
+
+    # critical width on the reference high-kappa stack for the threshold-
+    # derived charge (the EOT 1.5 nm extraction, i.e. the same stack)
+    m = mats['MoS2']
+    st = transport.STACK['HfO2_EOT1p5']
+    base = dict(Cox=transport.COX['HfO2_EOT1p5'], Vov=1.5, Vds=1.0,
+                Lch_nm=300.0, n_it_cm2=st['nit'], eps_env=st['eps'])
+    sig_e = pena['1.5']['sigma']
+    wc = {}
+    for tag, h in (('halo5', D.HALO['GENTLE_nm']), ('halo0', 0.0)):
+        wc[tag] = float(transport.critical_width(
+            m, nd_ref, **dict(base, halo_nm=h, sigma_line_cm=sig_e)))
+    wc_lo = float(transport.critical_width(
+        m, nd_ref, **dict(base, halo_nm=D.HALO['GENTLE_nm'],
+                          sigma_line_cm=pena['1.5']['sigma_boot'][1])))
+    wc_hi = float(transport.critical_width(
+        m, nd_ref, **dict(base, halo_nm=D.HALO['GENTLE_nm'],
+                          sigma_line_cm=pena['1.5']['sigma_boot'][3])))
+    return dict(
+        n_devices=int(len(V)), n_by_width={str(int(w)): int(np.sum(W == w))
+                                           for w in (850, 75, 25)},
+        mean_by_width={str(int(w)): float(V[W == w].mean())
+                       for w in (850, 75, 25)},
+        slope_Vcm=slope, slope_se=slope_se,
+        slope_boot=[float(np.percentile(boot, q))
+                    for q in (2.5, 16, 50, 84, 97.5)],
+        d75=d75, d75_se=d75e, d25=d25, d25_se=d25e,
+        ratio=float(ratio), ratio_se=float(ratio_e),
+        ratio_pred=float(ratio_pred),
+        pena=pena, raman_sigma=float(sig_ters),
+        raman_pred_d25=pred_d25, raman_pred_d75=pred_d75,
+        lan=dict(Cox=float(c_lan), sigma=float(sig_lan),
+                 ratio_to_raman=float(sig_lan / sig_ters)),
+        kotekar=dict(dVT=float(dvt_kp), sigma_lower=float(sig_kp),
+                     ratio_to_raman=float(sig_kp / sig_ters)),
+        liu=dict(sigma_lower=float(sig_liu),
+                 ratio_to_raman=float(sig_liu / sig_ters)),
+        dVT25_from_electrical=float(transport.threshold_shift(
+            sig_e, 25.0, transport.COX['HfO2_EOT1p5'])),
+        Wc_electrical=wc, Wc_electrical_68=[wc_lo, wc_hi])
+
 def main():
     mats = all_materials()
     res = {}
@@ -709,9 +840,13 @@ def main():
     res['energy_resolved'] = A11_energy_resolved(mats)
     res['quantum'] = A12_quantum(mats)
     res['predictions'] = A9_predictions(mats)
+    res['electrical'] = A17_electrical(mats, res['krayev']['edge']['n_cm2'])
+    from . import exact
+    res['exact'] = exact.A18_exact(mats, res['electrical'])
     n_edge = res['krayev']['edge']['n_cm2']
     res['uncertainty'] = uncertainty.A13_uncertainty(mats, n_edge)
     res['validity'] = uncertainty.A14_validity(mats)
+    res['robustness'] = uncertainty.A16_robustness(mats, n_edge)
     # Kormanyos et al., 2D Mater. 2, 022001 (2015), Tables 3 and 4, DFT with
     # spin-orbit coupling (PBE).  Conduction band: the mean of the two
     # spin-split subband masses, since the splitting (3 to 37 meV) is at or

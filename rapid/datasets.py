@@ -21,17 +21,28 @@ NATTOO = [
     dict(label='ALD annealed',       R_sh=0.230, R_sh_e=0.068,
          R_LA=0.032, R_LA_e=0.002, mu=0.44, mu_e=0.09),
     dict(label='sputtered as-grown', R_sh=0.687, R_sh_e=0.022,
-         R_LA=0.128, R_LA_e=0.004, mu=0.030, mu_e=0.010),
+         R_LA=0.128, R_LA_e=0.005, mu=0.030, mu_e=0.010),
     dict(label='sputtered annealed', R_sh=0.507, R_sh_e=0.012,
          R_LA=0.087, R_LA_e=0.007, mu=np.nan, mu_e=np.nan),
 ]
 
 # ---------------------------------------------------------------------------
 # Krayev et al., Appl. Phys. Lett. 128, 203102 (2026)  doi:10.1063/5.0321304
-# Gap-mode tip-enhanced Raman maps of monolayer MoS2 nanoribbons on gold.
+# Gap-mode tip-enhanced Raman maps of lithographically patterned monolayer
+# MoS2 nanoribbons on a gold substrate, after a vacuum anneal that removes
+# resist residues; spatial resolution down to about 10 nm; ribbons down to
+# 50 nm wide (all as stated in the abstract).  The authors include T. Pena
+# and E. Pop, authors of the transistor study below, whose ribbons are
+# defined by electron-beam lithography and a XeF2 etch; that the Raman
+# ribbons share that etch is an assumption, flagged as such in the article.
+# The four shifts and the 60 nm width are as read from that work for the
+# original submission; the abstract confirms the 0.5 cm^-1 A1' redshift at the
+# edges and 50 to 100 nm inhomogeneities with a redshifted 2LA(M).
 # ---------------------------------------------------------------------------
 KRAYEV = dict(
-    ribbon_width_nm=60.0,
+    ribbon_width_nm=60.0,   # ribbon width, for reference only
+    resolution_nm=10.0,
+    n_ribbons=1, n_edges=2,
     edge_dwA=-0.5,          # A1' shift at the ribbon edge, cm^-1
     edge_dw2LA=0.0,         # 2LA(M) unchanged at the edge
     spot_dwA=-0.6,          # inhomogeneity spot, cm^-1
@@ -44,13 +55,27 @@ KRAYEV = dict(
 # Wide-field hyperspectral differential reflectance of monolayer WS2.
 # ---------------------------------------------------------------------------
 PENG = dict(
-    EA_grain=1.98,          # A-exciton energy inside the grain, eV
-    EA_gb=2.03,             # at the grain boundary, eV
+    EA_grain=2.00,          # A-exciton energy inside the grain, eV
+    EA_gb=2.05,             # at the grain boundary, eV
     dE_gb=0.050,            # blue shift, eV
     strain_gb_reported=-0.6,  # percent compressive, as estimated in that work
-    vdoped_peak=[(0.0, 1.95), (0.4, 1.94), (0.7, 1.93), (12.0, 1.90),
-                 (17.0, 1.89), (30.0, 1.87)],   # nominal V %, DR peak eV
 )
+
+# ---------------------------------------------------------------------------
+# Sousa et al., Nanoscale 16, 12923 (2024)  doi:10.1039/D4NR00837E
+# (preprint arXiv:2401.11984).  Tip-enhanced Raman and photoluminescence of
+# grown MoS2 monolayers on fused silica, 632.8 nm excitation.  At the edge of
+# sample A1, which atomic force microscopy shows to be suspended by about
+# 2 nm, E' redshifts by 1.5 cm^-1, the 2LA band by 8.5 cm^-1, and no
+# substantial A1' shift is seen.  The authors read the E' shift as about
+# 0.7 % strain and attribute the 2LA change to a change in the relative
+# weights of its resonant components rather than to strain.  Used in the
+# text as qualitative context only: it is a grown, not an etched, edge and
+# no A1' value is given.
+# ---------------------------------------------------------------------------
+SOUSA_EDGE = dict(dwE=-1.5, dw2LA=-8.5, dwA_detected=False,
+                  strain_reported_pct=0.7, laser_nm=632.8,
+                  suspension_nm=2.0)
 
 # ---------------------------------------------------------------------------
 # Pena et al., Nature Nanotechnology 21, 803 (2026)
@@ -66,7 +91,11 @@ PENG = dict(
 # is not reported, so any model current quoted for them would rest on an
 # assumed bias.  Their on-currents are recorded below for reference only.
 # Channels were defined by electron-beam lithography and a XeF2 dry chemical
-# etch, not by reactive-ion etching.
+# etch, not by reactive-ion etching.  The same work reports no defect-
+# activated Raman modes, an unbroadened A exciton and a slightly larger
+# trion-to-exciton ratio in the ribbons than in wide regions, which its
+# authors note potentially suggests doping from the edges, and no measurable
+# off-state edge conduction.  No damage-halo width is reported.
 PENA = dict(
     mu_FE=(30.0, 60.0),                    # cm^2 / V s at 300 K, 75 nm on SiO2
     width_no_degradation_nm=(75.0, 850.0),
@@ -88,9 +117,18 @@ PENA = dict(
     # in the paper, so it is quoted but not modelled.
     Ion_60nm_HfO2=560.0,
     # Transfer-length extraction on 75 nm MoS2 ribbons with Au contacts,
-    # quoted per contact at the highest gate overdrive.
+    # quoted per contact at the highest gate overdrive.  That work gives it
+    # as an upper bound, so the modelled currents that include it are lower
+    # bounds on what the model predicts for a better contact.
     Rc_ohm_um=560.0,
     Rc_fit_ohm_um=(190.0, 370.0),
+    # Per material: the MoS2 bound above, and for WS2 the value that work
+    # reports for its WS2 ribbons, R_c ~ 675 +/- 268 ohm um.  No value is
+    # reported for the p-type WSe2 contact, which is therefore resolved as a
+    # barrier (A12); for the series-resistor estimate it carries the MoS2
+    # bound, stated as such.
+    Rc_by_material={'MoS2': 560.0, 'WS2': 675.0, 'WSe2': 560.0},
+    Rc_WS2_err_ohm_um=268.0,
     edge_roughness_nm=3.0,
 )
 
@@ -107,7 +145,9 @@ YANG_DEFECTS = {
 
 # ---------------------------------------------------------------------------
 # Dossena et al., npj 2D Mater. Appl. 9, 67 (2025)  doi:10.1038/s41699-025-00587-9
-# First-principles quantum transport in disordered WS2/Al2O3 stacks.
+# First-principles quantum transport in WS2 on Al2O3, with the disorder placed
+# in the oxide interface; the two points are two interface models at nearly
+# the same carrier density.
 # ---------------------------------------------------------------------------
 DOSSENA = dict(mu_phonon=312.0,
                points=[(2.0e13, 56.5), (4.0e13, 8.5)])   # (n_defect, mu)
@@ -159,8 +199,9 @@ JIN_MU = {'MoS2': dict(e=320.0, h=270.0), 'WS2': dict(e=690.0, h=540.0),
           'MoSe2': dict(e=180.0, h=90.0), 'WSe2': dict(e=250.0, h=270.0)}
 
 # ---------------------------------------------------------------------------
-# Liu et al., Adv. Funct. Mater. 36, 2514880 (2026) doi:10.1002/adfm.202514880
-# Helium-ion patterned MoS2 nanoribbons: damage halo beyond the exposed edge.
+# Liu et al., Adv. Funct. Mater. 36, e14880 (2026) doi:10.1002/adfm.202514880
+# MoS2 nanoribbons patterned directly with a focused helium-ion beam (beam-
+# induced etching with XeF2 gas): damage halo beyond the exposed edge.
 # ---------------------------------------------------------------------------
 # Damage-halo widths. The helium-ion value is measured: Liu et al. report
 # "damage up to 150 nm beyond the patterned edge". No halo width has been
@@ -178,7 +219,9 @@ HALO = dict(HIM_nm=150.0, GENTLE_nm=5.0)
 # the comparison in the article is an onset and order-of-magnitude check
 # rather than a quantitative one. Channel length 1 um, 300 nm SiO2 back gate.
 # The paper gives no per-width threshold voltage, only the three statements
-# below, so nothing more can be read out of it.
+# below, so nothing more can be read out of it.  The authors attribute the
+# shift to edge depletion by electric fields or adsorbed molecules; the 50 V
+# total refers to one 6 nm thick set of ribbons.
 # ---------------------------------------------------------------------------
 LIU2012 = dict(
     widths_nm=(2000.0, 1000.0, 500.0, 200.0, 100.0, 80.0, 60.0),
@@ -196,3 +239,69 @@ LIU2012 = dict(
 # ---------------------------------------------------------------------------
 GAUGE = {'WS2': (-129.0, 3.0), 'WSe2': (-120.0, 3.0),
          'MoS2': (-100.0, 3.0), 'MoSe2': (-64.0, 4.0)}
+
+
+# ---------------------------------------------------------------------------
+# Electrical cross-checks: threshold voltage against ribbon width.
+# ---------------------------------------------------------------------------
+# Pena et al., Nat. Nanotechnol. 21, 803 (2026), Extended Data Fig. 4
+# ("Width-dependent threshold voltage across monolayer MoS2 nanoribbons").
+# Monolayer MoS2 ribbons made by the same electron-beam lithography and XeF2
+# etch as the ribbons of the tip-enhanced Raman data, on a ~5.5 nm HfO2 local
+# back gate; V_T,cc at a constant current of 100 nA/um, forward sweep.  The
+# caption states that V_T,cc increases as W_ch is reduced and attributes it,
+# with earlier work, to negative charge at the edges.  The paper gives the
+# EOT as ~1.5 nm for its HfO2 back gates without naming the thickness; the
+# Methods tie that figure to the 7.5 nm films, so for the 5.5 nm films the
+# same permittivity gives ~1.1 nm.  Both are used.
+#
+# The values below were DIGITISED BY US from the published image
+# (41565_2026_2161_Fig8_ESM.jpg, 832 x 663 px): marker centroids located by
+# colour against the axis ticks (V: 1.0 V = 56.5 px ... -1.0 V = 505 px, i.e.
+# 224 px per volt; L: 0 at 164 px, 1 um at 797 px).  Reading uncertainty is
+# about 0.01 V for isolated markers and about 0.02 V for the few markers
+# partly hidden by others; both are far below the device-to-device spread.
+# (W_ch nominal nm, L_ch um, V_T,cc V)
+PENA_VT = (
+    # W ~ 850 nm (grey triangles, 18 devices)
+    (850, 1.00, -0.05), (850, 1.00, -0.35),
+    (850, 0.50, -0.35), (850, 0.50, -0.47), (850, 0.50, -0.74),
+    (850, 0.30, -0.20), (850, 0.30, -0.49), (850, 0.30, -0.58),
+    (850, 0.20, -0.49), (850, 0.20, -0.52),
+    (850, 0.10, -0.05), (850, 0.10, -0.36), (850, 0.10, -0.62),
+    (850, 0.07, -0.42), (850, 0.07, -0.60), (850, 0.07, -0.89),
+    (850, 0.05, -1.11), (850, 0.03, -0.90),
+    # W ~ 75 nm (blue circles, 15 devices)
+    (75, 1.00, 0.27), (75, 1.00, -0.03), (75, 1.00, -0.12),
+    (75, 0.50, -0.18), (75, 0.50, -0.21),
+    (75, 0.30, -0.01), (75, 0.30, -0.26), (75, 0.30, -0.33), (75, 0.30, -0.43),
+    (75, 0.20, 0.01), (75, 0.20, -0.16), (75, 0.20, -0.45),
+    (75, 0.10, -0.09),
+    (75, 0.07, -0.10), (75, 0.07, -0.17),
+    # W ~ 25 nm (purple squares, 4 devices)
+    (25, 0.30, 0.96), (25, 0.30, 0.30),
+    (25, 0.05, 0.63), (25, 0.05, 0.43),
+)
+PENA_VT_META = dict(etch='XeF2', stack='HfO2, ~5.5 nm', EOT_nm=(1.1, 1.5),
+                    I_cc_nA_per_um=100.0, figure='Extended Data Fig. 4',
+                    read_uncertainty_V=0.02)
+
+# Lan et al., Nat. Commun. 17, 7386 (2026), doi:10.1038/s41467-026-74342-z.
+# Monolayer MoS2 ribbons defined by Cl2/O2 inductively coupled plasma reactive
+# ion etching, 3 nm HfO2 grown at 90 C (kappa ~ 10 as stated), L = 55 to
+# 75 nm; "a positive V_T,cc shift of ~0.25 V" between 540 nm and 35 nm wide
+# devices (cumulative distributions of many devices), V_T,cc at 100 nA/um and
+# V_DS = 0.1 V.  The authors attribute the trend to stronger gate control in
+# narrow channels, not to edge charge, so the value is used here as an upper
+# bound on any edge-charge contribution.
+LAN2026 = dict(etch='Cl2/O2 ICP-RIE', t_HfO2_nm=3.0, kappa=10.0,
+               W_wide_nm=540.0, W_narrow_nm=35.0, dVT_V=0.25)
+
+# Kotekar-Patil et al., Appl. Phys. Lett. 114, 013508 (2019),
+# doi:10.1063/1.5079860.  Exfoliated monolayer MoS2, SF6 plasma etch, 300 nm
+# SiO2 back gate, W = 50 nm, L = 500 nm.  Unetched devices: V_th from -30 to
+# -10 V; the three ribbons: 20, 31 and 33.4 V.  W is six times smaller than
+# the oxide thickness, so fringing fields make the parallel-plate Eq. (1)
+# inapplicable; the sign is used, not the size.
+KOTEKAR2019 = dict(etch='SF6 plasma', t_SiO2_nm=300.0, W_nm=50.0,
+                   Vth_unetched_V=(-30.0, -10.0), Vth_ribbon_V=(20.0, 31.0, 33.4))

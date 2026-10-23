@@ -263,3 +263,158 @@ def A15_mass_sensitivity(mats, kp_masses, sigma_line_cm):
             row['Wc_ratio'] = row['kp']['Wc'] / row['jin']['Wc']
         out[name] = row
     return out
+
+
+# ---------------------------------------------------------------------------
+# A16_robustness
+#     Added in response to review.  The edge charge rests on one published
+#     tip-enhanced data set, and the critical width on a model, so this stage
+#     asks how far each conclusion survives when the assumptions behind it
+#     are pushed beyond the values used in A5 and A8:
+#       * the shift noise, raised from the single-pixel value to more than
+#         three times it, with the Monte Carlo of A13 repeated at each level;
+#       * the charge coefficient of the 2LA(M) overtone, which has not been
+#         measured for MoS2, scanned until the sign of the result reverses,
+#         for both ends of the acoustic Grueneisen bracket;
+#       * the internal closure at the interior spot, where the strain read
+#         from 2LA(M) alone predicts the A1' shift;
+#       * the critical width against the size and sign of the edge charge and
+#         against the halo width, which the XeF2 etch does not report.
+#     Every input is one already used elsewhere in the pipeline.
+# ---------------------------------------------------------------------------
+NOISE_LEVELS = (0.15, 0.25, 0.35, 0.50)     # cm^-1 on A1'; 2LA(M) twice that
+CHARGE_SCALES = (-1.0, 0.0, 0.5, 1.0, 2.0, 3.0)
+HALO_LEVELS = (1.0, 5.0, 10.0, 20.0)
+
+
+def _mc_edge(mats, sA, s2, N, seed, frac_2la=None):
+    """A13 edge Monte Carlo at a chosen shift noise; optionally with a 2LA(M)
+    charge coefficient drawn uniformly on [0, frac_2la] of the frequency-scaled
+    A1' coefficient."""
+    m = mats['MoS2']
+    rng = np.random.default_rng(seed)
+    gLA_dft = m.dft['gamma_LA']
+    gLA_lo = gLA_dft * (GAMMA_MEAS['WSe2']['gLA']
+                        / mats['WSe2'].dft['gamma_LA'])
+    gA = np.exp(rng.uniform(np.log(m.gA_meas), np.log(m.gA), N))
+    gLA = np.exp(rng.uniform(np.log(gLA_lo), np.log(gLA_dft), N))
+    dA = rng.normal(m.dA, 0.15 * abs(m.dA), N)
+    w2LA = 2.0 * m.wLA
+    dwA = rng.normal(D.KRAYEV['edge_dwA'], sA, N)
+    dw2 = rng.normal(D.KRAYEV['edge_dw2LA'], s2, N)
+    f = (rng.uniform(0.0, frac_2la, N) if frac_2la else np.zeros(N))
+    n = np.empty(N)
+    for i in range(N):
+        G = np.array([[-2.0 * gA[i] * m.wA / 100.0, dA[i]],
+                      [-2.0 * gLA[i] * w2LA / 100.0,
+                       f[i] * dA[i] * w2LA / m.wA]])
+        Cd = np.diag([1 / sA ** 2, 1 / s2 ** 2])
+        H = G.T @ Cd @ G + np.diag([1.0, 0.25])
+        n[i] = np.linalg.solve(H, G.T @ Cd @ np.array([dwA[i], dw2[i]]))[1]
+    return n * 1e13
+
+
+def A16_robustness(mats, n_edge_nominal, nd_ref=1.3e12, w_edge=10.0,
+                   N=20000, seed=11):
+    m = mats['MoS2']
+    out = {}
+
+    # ---- 1. shift noise --------------------------------------------------
+    rows = []
+    for sA in NOISE_LEVELS:
+        n = _mc_edge(mats, sA, 2.0 * sA, N, seed)
+        rows.append(dict(sigma_A=sA, sigma_2LA=2.0 * sA,
+                         prob_pos=float(np.mean(n > 0)), **_pct(n)))
+    out['noise'] = rows
+    fine = np.round(np.arange(0.10, 1.001, 0.05), 3)
+    pp = [float(np.mean(_mc_edge(mats, s, 2 * s, 5000, seed) > 0))
+          for s in fine]
+    out['noise_curve'] = dict(sigma_A=fine.tolist(), prob_pos=pp)
+    # noise at which the excess-electron reading falls to 95 % and 84 %
+    pp_a = np.array(pp)
+    for lvl, key in ((0.95, 'sigma_at_95'), (0.84, 'sigma_at_84')):
+        idx = np.where(pp_a < lvl)[0]
+        if len(idx) and idx[0] > 0:
+            j = idx[0]
+            out[key] = float(np.interp(lvl, [pp_a[j], pp_a[j - 1]],
+                                       [fine[j], fine[j - 1]]))
+        else:
+            out[key] = float('nan')
+
+    # ---- 2. charge coefficient of the overtone ---------------------------
+    gLA_dft = m.dft['gamma_LA']
+    gLA_lo = gLA_dft * (GAMMA_MEAS['WSe2']['gLA']
+                        / mats['WSe2'].dft['gamma_LA'])
+    w2LA = 2.0 * m.wLA
+    fgrid = np.linspace(0.0, 4.0, 401)
+    scan = {}
+    for tag, gLA, gA in (('computed', gLA_dft, m.gA),
+                         ('low', gLA_lo, m.gA),
+                         ('measured_pair', gLA_lo, m.gA_meas)):
+        ns = []
+        for f in fgrid:
+            G = np.array([[-2.0 * gA * m.wA / 100.0, m.dA],
+                          [-2.0 * gLA * w2LA / 100.0, f * m.dA * w2LA / m.wA]])
+            Cd = np.diag([1 / SIGMA_A ** 2, 1 / SIGMA_2LA ** 2])
+            H = G.T @ Cd @ G + np.diag([1.0, 0.25])
+            ns.append(float(np.linalg.solve(
+                H, G.T @ Cd @ np.array([D.KRAYEV['edge_dwA'],
+                                        D.KRAYEV['edge_dw2LA']]))[1] * 1e13))
+        # without the prior the sign reverses exactly where the overtone's
+        # charge-to-strain sensitivity equals that of A1': f* = gLA / gA
+        scan[tag] = dict(gamma_LA=float(gLA), gamma_A=float(gA),
+                         f_flip=float(gLA / gA), f=fgrid.tolist(), n=ns,
+                         n_at_half=float(np.interp(0.5, fgrid, ns)))
+    out['overtone_charge'] = scan
+    n_f = _mc_edge(mats, SIGMA_A, SIGMA_2LA, N, seed, frac_2la=0.5)
+    out['mc_with_overtone_charge'] = dict(frac_max=0.5,
+                                          prob_pos=float(np.mean(n_f > 0)),
+                                          **_pct(n_f))
+
+    # ---- 3. closure at the interior spot ---------------------------------
+    clos = {}
+    for tag, gLA, gA in (('computed', gLA_dft, m.gA),
+                         ('measured_pair', gLA_lo, m.gA_meas)):
+        eps = D.KRAYEV['spot_dw2LA'] / (-2.0 * gLA * w2LA / 100.0)
+        clos[tag] = dict(strain_pct=float(eps),
+                         dwA_pred=float(-2.0 * gA * m.wA / 100.0 * eps),
+                         dwA_meas=D.KRAYEV['spot_dwA'])
+    out['spot_closure'] = clos
+
+    # ---- 4. critical width against charge size, sign and halo ------------
+    sig0 = transport.edge_line_charge(n_edge_nominal, w_edge)
+    wc = {}
+    for stack in ('HfO2_EOT1p5', 'SiO2_90nm', 'SiO2_300nm'):
+        st = transport.STACK[stack]
+        base = dict(halo_nm=D.HALO['GENTLE_nm'], Cox=transport.COX[stack],
+                    Vov=1.5, Vds=1.0, Lch_nm=300.0, n_it_cm2=st['nit'],
+                    eps_env=st['eps'])
+        row = {}
+        for k in CHARGE_SCALES:
+            v = transport.critical_width(m, nd_ref,
+                                         **dict(base, sigma_line_cm=k * sig0))
+            row['%g' % k] = (float(v) if np.isfinite(v) else None)
+        wc[stack] = row
+    out['Wc_charge'] = wc
+    st = transport.STACK['HfO2_EOT1p5']
+    base = dict(Cox=transport.COX['HfO2_EOT1p5'], Vov=1.5, Vds=1.0,
+                Lch_nm=300.0, n_it_cm2=st['nit'], eps_env=st['eps'])
+    halo = {}
+    for h in HALO_LEVELS:
+        r = {}
+        for k in (-1.0, 0.0, 1.0):
+            v = transport.critical_width(
+                m, nd_ref, **dict(base, halo_nm=h, sigma_line_cm=k * sig0))
+            r['%g' % k] = (float(v) if np.isfinite(v) else None)
+        halo['%g' % h] = r
+    out['Wc_halo'] = halo
+
+    # ---- 5. damage contrast inside the halo (assumed 20x in A8) ----------
+    con = {}
+    for c in (5.0, 20.0, 100.0):
+        v = transport.critical_width(
+            m, nd_ref, **dict(base, halo_nm=D.HALO['GENTLE_nm'],
+                              sigma_line_cm=sig0, nd_edge=c * nd_ref))
+        con['%g' % c] = (float(v) if np.isfinite(v) else None)
+    out['Wc_contrast'] = con
+    return out

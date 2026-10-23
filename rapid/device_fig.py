@@ -633,7 +633,7 @@ def draw_cross_section(ax, rect=(0.012, 0.012, 0.404, 0.372), fs=5.2):
                                  mutation_scale=2.4, shrinkA=0, shrinkB=0))
     cax.text(wh + 0.035, y_ch + t + 0.21, r'$w_{\rm h}$', fontsize=fs,
              color='#a8631a', ha='left', va='center')
-    cax.text(0.5 * (SX0 + SX1), y_ch - h_ox - h_g - 0.28, 'section A--A',
+    cax.text(0.5 * (SX0 + SX1), y_ch - h_ox - h_g - 0.28, 'section A–A',
              fontsize=fs, color=INK2, ha='center', va='center', style='italic')
     return bax, cax
 
@@ -689,6 +689,7 @@ def draw_device(ax, fs=6.8, terminals=True, cutplane=True,
         drain=pr((XE + 1.20, Y0 - 0.42, Z_CH + T_MONO + PAD_H)),
         oxide=pr((2.05, 0.0, Z_OX + T_OX / 2)),
         gatemetal=pr((2.55, 0.0, Z_GM + T_GM / 2)),
+        gate_face=pr((L - 0.02, D * 0.30, Z_GM + T_GM / 2)),
         substrate=pr((3.60, 0.0, -T_SI - T_GM - T_OX / 2)),
         **dims, **terms,
     )
@@ -739,13 +740,13 @@ def draw_device(ax, fs=6.8, terminals=True, cutplane=True,
 # read and checked in one place.
 LABELS = [
     # key,          text,                        colour,     x,     y,    ha
-    ('tip',         '532 nm\nexcitation',        GREEN,    0.575, 0.995, 'left'),
+    ('tip',         'laser\nexcitation',        GREEN,    0.575, 0.995, 'left'),
     ('channel',     '1H monolayer\nchannel',     '#1f6ea8', 0.985, 0.995, 'right'),
     ('halo',        'damage halo',               '#a8631a', 0.008, 0.480, 'left'),
     ('drain',       'drain',                     '#8a6d18', 0.985, 0.620, 'right'),
     ('source',      'source',                    '#8a6d18', 0.008, 0.830, 'left'),
     ('scatter',     'Raman\nscattering',         VERM,     0.008, 0.995, 'left'),
-    ('gate_term',   r'$V_{\rm G}$',              INK2,     0.985, 0.170, 'right'),
+    ('gate_face',   r'gate, $V_{\rm G}$',        INK2,     0.985, 0.170, 'right'),
 ]
 
 

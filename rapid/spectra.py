@@ -33,13 +33,14 @@ LN10 = np.log(10.0)
 
 # Shift of the A-exciton resonance with electron doping, meV per 1e13 cm^-2.
 # Chernikov et al., Phys. Rev. Lett. 115, 126802 (2015) show that in
-# electrostatically gated monolayer WS2 the ground-state exciton moves by
-# several tens of meV over this density range, the reduction of the exciton
-# binding energy outweighing the bandgap renormalisation so that the net shift
-# is to the blue.  A nominal +40 meV per 1e13 cm^-2 is used.  This coefficient
-# enters only the three-field image inversion demonstrated in the supplement;
-# no physical result reported in the article depends on it.
-CHI_DOP = 40.0
+# electrostatically gated monolayer WS2 the ground-state exciton shifts to the
+# blue with electron density, the reduction of the exciton binding energy
+# outweighing the bandgap renormalisation.  Chernikov et al. report
+# dE/dV = +0.172 meV/V with the density rising by 0.8e12 cm^-2 per 10 V, which
+# is +21.5 meV per 1e13 cm^-2.  This coefficient enters only the three-field
+# image inversion demonstrated in the supplement; no physical result reported
+# in the article depends on it.
+CHI_DOP = 21.5
 
 OBS_NAMES = ['wE', 'wA', 'R_A', 'EA']
 OBS_UNITS = ['cm$^{-1}$', 'cm$^{-1}$', '', 'eV']

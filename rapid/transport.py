@@ -25,6 +25,9 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+import json
+import os
+
 import numpy as np
 
 from .materials import (HBAR, QE, M0, KB, EPS0, T300, EPS_SIO2, EPS_HFO2,
@@ -417,14 +420,55 @@ def edge_line_charge(n_edge_cm2, w_edge_nm):
     return float(n_edge_cm2) * float(w_edge_nm) * 1e-7
 
 
-def threshold_shift(sigma_line_cm, W_nm, Cox):
+# Gate-stack geometry behind each C_ox above, for the fringing correction:
+# (dielectric thickness m, relative permittivity).  The high-kappa stack is the
+# 5.5 nm HfO2 film of the threshold data, whose permittivity gives EOT 1.5 nm.
+STACK_GEOM = {'SiO2_300nm': (300e-9, 3.9), 'SiO2_90nm': (90e-9, 3.9),
+              'SiO2_30nm': (30e-9, 3.9), 'HfO2_EOT1p5': (5.5e-9, 3.9 * 5.5 / 1.5)}
+_FRINGE_W = np.geomspace(1.0, 5000.0, 40)          # nm
+_FRINGE = {}
+_FRINGE_FILE = os.path.join(os.path.dirname(__file__), '..', 'fringe_cache.json')
+
+
+def fringing(W_nm, Cox):
+    """C_ox W / C_line for the stack whose C_ox is given (1 for any other
+    stack): the factor by which the parallel-plate form overstates the
+    strong-inversion threshold shift of a ribbon, from the exact
+    Green's function of `electrostatics.py` (conducting strip, air above)."""
+    tag = next((k for k, v in COX.items() if abs(v / Cox - 1.0) < 1e-6), None)
+    if tag is None:
+        return np.ones_like(np.asarray(W_nm, float))
+    if not _FRINGE:
+        if os.path.exists(_FRINGE_FILE):
+            with open(_FRINGE_FILE) as fh:
+                _FRINGE.update({k: np.array(v) for k, v in json.load(fh).items()})
+    if tag not in _FRINGE:
+        from . import electrostatics as ES
+        t, eps = STACK_GEOM[tag]
+        _FRINGE[tag] = np.array([ES.fringing_factor(w * 1e-9, t, eps)
+                                 for w in _FRINGE_W])
+        with open(_FRINGE_FILE, 'w') as fh:
+            json.dump({k: v.tolist() for k, v in _FRINGE.items()}, fh)
+    lw = np.log(np.clip(np.asarray(W_nm, float), _FRINGE_W[0], _FRINGE_W[-1]))
+    return np.interp(lw, np.log(_FRINGE_W), _FRINGE[tag])
+
+
+def threshold_shift(sigma_line_cm, W_nm, Cox, parallel_plate=False):
     """Width-dependent threshold-voltage shift from fixed edge charge, V.
 
-    Both edges contribute, and the charge is shared over the ribbon width:
+    Both edges contribute and, in the on-state, the electrons compensate the
+    charge over the whole ribbon, so the shift is 2 q sigma / C_line, with
+    C_line the capacitance of the ribbon per unit length.  In the
+    parallel-plate limit C_line = C_ox W and this is Eq. (1) of the article:
         dV_T = q * 2 * sigma_line / (Cox * W)
+    For a ribbon not much wider than the dielectric is thick the fringing
+    field raises C_line, and `fringing` supplies C_ox W / C_line.
     """
     W = np.asarray(W_nm, float) * 1e-7             # cm
-    return QE * 2.0 * float(sigma_line_cm) / (Cox * W)
+    pp = QE * 2.0 * float(sigma_line_cm) / (Cox * W)
+    if parallel_plate:
+        return pp
+    return pp * fringing(W_nm, Cox)
 
 
 def ribbon_current_density_uA_um(mat: Material, W_nm, nd_bulk,
@@ -432,15 +476,21 @@ def ribbon_current_density_uA_um(mat: Material, W_nm, nd_bulk,
                                  halo_nm=5.0, strain=0.0, Vov=2.0,
                                  Cox=COX['HfO2_EOT1p5'], n_it_cm2=N_IT_HFO2,
                                  Vds=1.0, Lch_nm=300.0, carrier='e',
-                                 vsat=None, eps_env=None):
+                                 vsat=None, eps_env=None, vov_fn=None):
     """Drain current per unit width in uA/um (1 A/m is numerically 1 uA/um).
 
     The gate overdrive is reduced by the width-dependent threshold shift
     produced by the fixed edge charge, and the carrier velocity saturates.
+    If `vov_fn` is given it replaces Eq. (1): it maps width (nm) to the
+    effective overdrive, e.g. from the self-consistent electrostatics of
+    `electrostatics.py` with a measured charge profile.
     """
     W = np.asarray(W_nm, float)
-    dVT = threshold_shift(sigma_line_cm, W, Cox)
-    Vov_eff = np.clip(Vov - dVT, 0.0, None)
+    if vov_fn is None:
+        dVT = threshold_shift(sigma_line_cm, W, Cox)
+        Vov_eff = np.clip(Vov - dVT, 0.0, None)
+    else:
+        Vov_eff = np.clip(np.asarray(vov_fn(W), float), 0.0, None)
     n_cm2 = Cox * np.maximum(Vov_eff, 1e-3) / QE               # cm^-2
     # The screened-Coulomb mobility depends on the local carrier density, and
     # the carrier density depends on width through the threshold shift, so the

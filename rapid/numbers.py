@@ -36,7 +36,10 @@ def main():
     # ---- adjoint verification
     av = r['adjoint_verification']['MoS2']
     cmd('AdjJacErr', _fmt_sci(av['jacobian_vs_fd']))
-    cmd('AdjDotErr', _fmt_sci(av['dot_product_error']))
+    # the dot-product test can return exactly zero in floating point; it is
+    # then quoted as below the double-precision floor rather than as zero
+    cmd('AdjDotErr', _fmt_sci(av['dot_product_error'])
+        if av['dot_product_error'] >= 1e-15 else r'<10^{-15}')
     cmd('AdjMapErr', _fmt_sci(av['map_gradient_error']))
 
     # ---- conditioning
@@ -290,6 +293,8 @@ def main():
     cmd('RcWSePhi', '%.0f' % w['R_contact_ohm_um'])
 
     cmd('RcMeas', '%.0f' % sc['Rc_measured_ohm_um'])
+    cmd('RcMeasWS', '%.0f' % D.PENA['Rc_by_material']['WS2'])
+    cmd('RcMeasWSErr', '%.0f' % D.PENA['Rc_WS2_err_ohm_um'])
 
     # k-mesh cross-check of the two strain derivatives that matter
     kc = os.path.join(ROOT, 'dft', 'kcheck_summary.json')
@@ -378,6 +383,189 @@ def main():
                 cmd('AbiDgap' + tag,
                     '%.0f' % abs(sj[name]['sr']['dgap_deps']))
 
+    # ---- robustness of the edge charge and of the critical width (A16)
+    rr = r['robustness']
+    for row, tag in zip(rr['noise'], ('A', 'B', 'C', 'D')):
+        cmd('NoiseLevel' + tag, '%.2f' % row['sigma_A'])
+        cmd('NoiseLevelTwo' + tag, '%.2f' % row['sigma_2LA'])
+        cmd('ProbPosNoise' + tag, '%.0f' % (100.0 * row['prob_pos']))
+        cmd('EdgeNLoNoise' + tag, _fmt_sci(row['p16']))
+        cmd('EdgeNHiNoise' + tag, _fmt_sci(row['p84']))
+    cmd('NoiseAtNinetyFive', '%.2f' % rr['sigma_at_95'])
+    cmd('NoiseAtEightyFour', '%.2f' % rr['sigma_at_84'])
+    cmd('NoiseRatioNinetyFive', '%.1f' % (rr['sigma_at_95']
+                                          / rr['noise'][0]['sigma_A']))
+    oc = rr['overtone_charge']
+    cmd('FFlipComp', '%.1f' % oc['computed']['f_flip'])
+    cmd('FFlipLow', '%.2f' % oc['low']['f_flip'])
+    cmd('FFlipMeas', '%.1f' % oc['measured_pair']['f_flip'])
+    cmd('EdgeNHalfComp', _fmt_sci(oc['computed']['n_at_half']))
+    cmd('EdgeNHalfLow', _fmt_sci(oc['low']['n_at_half']))
+    mo = rr['mc_with_overtone_charge']
+    cmd('ProbPosOvertone', '%.0f' % (100.0 * mo['prob_pos']))
+    cmd('EdgeNLoOvertone', _fmt_sci(mo['p16']))
+    cmd('EdgeNHiOvertone', _fmt_sci(mo['p84']))
+    sc_ = rr['spot_closure']
+    cmd('SpotApredComp', '%.2f' % abs(sc_['computed']['dwA_pred']))
+    cmd('SpotApredMeas', '%.1f' % abs(sc_['measured_pair']['dwA_pred']))
+    cmd('SpotAmeas', '%.1f' % abs(sc_['computed']['dwA_meas']))
+    cmd('SpotClosureGap', '%.2f' % abs(sc_['computed']['dwA_pred']
+                                       - sc_['computed']['dwA_meas']))
+    # smallest edge density the single-pixel A1' noise could separate from
+    # zero at two standard deviations, strain pinned by the overtone
+    cmd('NDetect', _fmt_sci(2.0 * 0.15 / abs(kv['dwA_dn']) * 1e13))
+
+    def _wc(v):
+        return '%.0f' % v if v is not None else r'\mbox{none}'
+    words = {'-1': 'Neg', '0': 'Zero', '0.5': 'Half', '1': 'One',
+             '2': 'Two', '3': 'Three'}
+    for stack, stag in (('HfO2_EOT1p5', 'HfO'), ('SiO2_90nm', 'SiONinety'),
+                        ('SiO2_300nm', 'SiOThreeH')):
+        for k, kw in words.items():
+            cmd('WcK' + kw + stag, _wc(rr['Wc_charge'][stack][k]))
+    hw = {'1': 'One', '5': 'Five', '10': 'Ten', '20': 'Twenty'}
+    for h, htag in hw.items():
+        for k, kw in (('-1', 'Neg'), ('0', 'Zero'), ('1', 'One')):
+            cmd('WcHalo' + htag + 'K' + kw, _wc(rr['Wc_halo'][h][k]))
+
+    for c, ct in (('5', 'Five'), ('20', 'Twenty'), ('100', 'Hundred')):
+        cmd('WcContrast' + ct, _wc(rr['Wc_contrast'][c]))
+    # ---- electrical cross-check (A17)
+    el = r['electrical']
+    cmd('SigmaLineLo', _fmt_sci(u['sigma_line']['p16']))
+    cmd('SigmaLineHi', _fmt_sci(u['sigma_line']['p84']))
+    cmd('ElSigmaBootLo', _fmt_sci(el['pena']['1.5']['sigma_boot'][1]))
+    cmd('ElSigmaBootHi', _fmt_sci(el['pena']['1.1']['sigma_boot'][3]))
+    cmd('ElSlope', '%.1f' % (el['slope_Vcm'] * 1e6))
+    cmd('ElSlopeErr', '%.1f' % (el['slope_se'] * 1e6))
+    cmd('ElSlopeBootLo', '%.1f' % (el['slope_boot'][1] * 1e6))
+    cmd('ElSlopeBootHi', '%.1f' % (el['slope_boot'][3] * 1e6))
+    cmd('ElNL', '%d' % len(set(L for _, L, _ in D.PENA_VT)))
+    cmd('ElN', '%d' % el['n_devices'])
+    cmd('ElNWide', '%d' % el['n_by_width']['850'])
+    cmd('ElNMid', '%d' % el['n_by_width']['75'])
+    cmd('ElNNarrow', '%d' % el['n_by_width']['25'])
+    cmd('ElDMid', '%.2f' % el['d75'])
+    cmd('ElDMidErr', '%.2f' % el['d75_se'])
+    cmd('ElDNarrow', '%.2f' % el['d25'])
+    cmd('ElDNarrowErr', '%.2f' % el['d25_se'])
+    cmd('ElRatio', '%.1f' % el['ratio'])
+    cmd('ElRatioErr', '%.1f' % el['ratio_se'])
+    cmd('ElRatioPred', '%.1f' % el['ratio_pred'])
+    cmd('ElSigma', _fmt_sci(el['pena']['1.5']['sigma']))
+    cmd('ElSigmaErr', _fmt_sci(el['pena']['1.5']['sigma_se']))
+    cmd('ElSigmaThin', _fmt_sci(el['pena']['1.1']['sigma']))
+    cmd('ElSigmaLo', _fmt_sci(el['pena']['1.5']['sigma_boot'][0]))
+    cmd('ElSigmaHi', _fmt_sci(el['pena']['1.1']['sigma_boot'][4]))
+    cmd('ElRatioRaman', '%.0f' % el['pena']['1.5']['ratio_to_raman'])
+    cmd('ElRatioRamanThin', '%.0f' % el['pena']['1.1']['ratio_to_raman'])
+    cmd('ElPredNarrow', '%.2f' % el['raman_pred_d25'])
+    cmd('ElPredMid', '%.2f' % el['raman_pred_d75'])
+    cmd('ElPerNm', '%.1f' % (el['pena']['1.5']['sigma'] * 1e-7))
+    cmd('RamanPerNm', '%.2f' % (el['raman_sigma'] * 1e-7))
+    cmd('LanSigma', _fmt_sci(el['lan']['sigma']))
+    cmd('LanRatio', '%.0f' % el['lan']['ratio_to_raman'])
+    cmd('KotekarSigma', _fmt_sci(el['kotekar']['sigma_lower']))
+    cmd('KotekarDVT', '%.0f' % el['kotekar']['dVT'])
+    cmd('KotekarRatio', '%.0f' % el['kotekar']['ratio_to_raman'])
+    cmd('LiuSigma', _fmt_sci(el['liu']['sigma_lower']))
+    cmd('LiuRatio', '%.0f' % el['liu']['ratio_to_raman'])
+    cmd('ElDVTNarrow', '%.1f' % el['dVT25_from_electrical'])
+    cmd('WcEl', '%.0f' % el['Wc_electrical']['halo5'])
+    cmd('WcElNoHalo', '%.0f' % el['Wc_electrical']['halo0'])
+    cmd('WcElLo', '%.0f' % el['Wc_electrical_68'][0])
+    cmd('WcElHi', '%.0f' % el['Wc_electrical_68'][1])
+    # ---- exact electrostatic inversion (A18)
+    ex = r.get('exact')
+    if ex:
+        ck, ce, fx = ex['checks'], ex['ceiling'], ex['fit']
+        cmd('ExFD', '%.1f' % (100 * ck['fd_max_rel_diff']))
+        cmd('ExSCLin', '%.0f' % (100 * max(abs(v) for v in ck['sc_vs_linear'])))
+        cmd('ExStrong', '%.0f' % (100 * ck['strong_inversion_ratio_to_eq1']))
+        cmd('ExCeilOne', '%.2f' % ce['one_per_site']['d75'])
+        cmd('ExCeilThree', '%.2f' % ce['three_per_site']['d75'])
+        cmd('ExCeilThreeNarrow', '%.1f' % ce['three_per_site']['d25'])
+        cmd('ExCeilSigmas', '%.0f' % ((el['d75'] - ce['three_per_site']['d75']) / el['d75_se']))
+        cmd('ExEll', '%.0f' % fx['ell_nm'])
+        cmd('ExEllLo', '%.0f' % fx['ell_68_nm'][0])
+        cmd('ExEllHi', '%.0f' % fx['ell_68_nm'][1])
+        cmd('ExEllBootLo', '%.0f' % fx['boot_ell_nm'][1])
+        cmd('ExEllBootHi', '%.0f' % fx['boot_ell_nm'][3])
+        cmd('ExEllBootTop', '%.0f' % fx['boot_ell_nm'][4])
+        cmd('ExEllNFLo', '%.0f' % fx['ell_95_nm'][0])
+        cmd('ExEllNFHi', '%.0f' % fx['ell_95_nm'][1])
+        cmd('ExNzero', _fmt_sci(fx['N0_cm2']))
+        cmd('ExNzeroLo', _fmt_sci(fx['boot_N0_cm2'][1]))
+        cmd('ExNzeroHi', _fmt_sci(fx['boot_N0_cm2'][3]))
+        cmd('ExNzeroCell', '%.1f' % (100 * fx['N0_per_cell']))
+        cmd('ExSigma', _fmt_sci(fx['sigma_cm']))
+        cmd('ExSigmaLo', _fmt_sci(fx['boot_sigma_cm'][1]))
+        cmd('ExSigmaHi', _fmt_sci(fx['boot_sigma_cm'][3]))
+        cmd('ExSigmaThin', _fmt_sci(ex['fit_eot1p1']['sigma_cm']))
+        cmd('ExEllThin', '%.0f' % ex['fit_eot1p1']['ell_nm'])
+        cmd('ExPerNm', '%.1f' % (fx['sigma_cm'] * 1e-7))
+        cmd('ExNBoot', '%d' % fx['n_boot'])
+        cmd('ExRes', '%.2f' % fx['s'])
+        cmd('ExDchiConf', '%.0f' % fx['dchi_confined'])
+        cmd('ExDSevenFiveFit', '%.2f' % fx['d75_fit'])
+        cmd('ExDTwoFiveFit', '%.2f' % fx['d25_fit'])
+        names = dict(base='Base', eot1p1='Thin', eps_top4='Top', r0_gw='Gw',
+                     r0_zero='Rzero', traps_n1p5='Traps', L_0p05='Lshort',
+                     L_1='Llong', strip='Strip')
+        for k, tag in names.items():
+            v = ex['variants'][k]
+            cmd('ExVar' + tag + 'Ell', '%.1f' % v['ell_nm'])
+            cmd('ExVar' + tag + 'Sigma', _fmt_sci(v['sigma_cm']))
+            cmd('ExVar' + tag + 'N', _fmt_sci(v['N0_cm2']))
+        sig_all = [v['sigma_cm'] for v in ex['variants'].values()]
+        ell_all = [v['ell_nm'] for k, v in ex['variants'].items() if k != 'strip']
+        cmd('ExVarSigmaMin', _fmt_sci(min(sig_all)))
+        cmd('ExVarSigmaMax', _fmt_sci(max(sig_all)))
+        cmd('ExVarEllMin', '%.1f' % min(ell_all))
+        cmd('ExVarEllMax', '%.1f' % max(ell_all))
+        n_all = [v['N0_cm2'] for v in ex['variants'].values()]
+        cmd('ExVarNMin', _fmt_sci(min(n_all)))
+        cmd('ExVarNMax', _fmt_sci(max(n_all)))
+        th = ex['thick']
+        cmd('ExKot', _fmt_sci(th['kotekar']['mid']))
+        cmd('ExKotLo', _fmt_sci(th['kotekar']['lo']))
+        cmd('ExKotHi', _fmt_sci(th['kotekar']['hi']))
+        cmd('ExKotShort', _fmt_sci(th['kotekar']['short_ell']))
+        cmd('ExKotNSpread', '%.0f' % (100 * max(abs(th['kotekar']['n_lo'] / th['kotekar']['mid'] - 1),
+                                                abs(th['kotekar']['n_hi'] / th['kotekar']['mid'] - 1))))
+        cmd('ExLiu', _fmt_sci(th['liu']['sigma_cm']))
+        cmd('ExLan', _fmt_sci(th['lan']['sigma_cm']))
+        # Raman against the exact electrical value: line charges, and areal
+        # densities averaged over the 10 nm resolution of the Raman maps
+        sR = el['raman_sigma']
+        cmd('ExRatioRaman', '%.0f' % (fx['sigma_cm'] / sR))
+        ell = fx['ell_nm']
+        Npix = fx['N0_cm2'] * ell / 10.0 * (1 - np.exp(-10.0 / ell))
+        cmd('ExNpix', _fmt_sci(Npix))
+        cmd('ExDensRatio', '%.0f' % (Npix / r['krayev']['edge']['n_cm2']))
+        cmd('ExSigmaRamanEll', _fmt_sci(r['krayev']['edge']['n_cm2'] * ell * 1e-7))
+        cmd('WcEx', '%.0f' % ex['wc']['Wc_halo5'])
+        cmd('WcExNoHalo', '%.0f' % ex['wc']['Wc_halo0'])
+        cmd('WcExLo', '%.0f' % min(ex['wc_68']))
+        cmd('WcExHi', '%.0f' % max(ex['wc_68']))
+        _w = ex['wc']
+        cmd('ExSameTwentyFive', '%.0f' % (100 * float(np.interp(np.log(25.0), np.log(_w['W']), _w['density_ratio']))))
+        cmd('WcExOwn', '%.0f' % ex['wc']['Wc_own_halo5'])
+        cmd('ExSameFifty', '%.0f' % (100 * ex['wc']['ratio50']))
+        cmd('ExOwnFifty', '%.0f' % (100 * ex['wc']['ratio50_own']))
+        # electron density at the threshold current, uniform sheet, for the
+        # shortest and longest channels of the data (charge-sheet relation)
+        from . import electrostatics as _E, exact as _X
+        _s = _E.Sheet(850e-9, _X.T_HFO, _X.eps_for_eot(1.5), 1.0, _X.R0_MOS2)
+        for tag, Lc in (('Lo', 0.03e-6), ('Hi', 1.0e-6)):
+            _v, _p = _s.gate_for(_E.cc_target(_X.I_CC, Lc, _X.MU), np.zeros_like(_s.x))
+            cmd('ExNcc' + tag, _fmt_sci(_s.mean_density(_p) * 1e-4))
+        cmd('ExNkT', _fmt_sci(_s.cox * _E.KT300 / _E.QE * 1e-4))
+    # fringing factors C_ox W / C_line quoted in the text
+    cmd('FrHfTwentyFive', '%.0f' % (100 * float(transport.fringing(25.0, transport.COX['HfO2_EOT1p5']))))
+    cmd('FrHfTwenty', '%.0f' % (100 * float(transport.fringing(20.0, transport.COX['HfO2_EOT1p5']))))
+    cmd('FrSiOSixty', '%.0f' % (100 * float(transport.fringing(60.0, transport.COX['SiO2_300nm']))))
+    cmd('FrSiOTwoH', '%.0f' % (100 * float(transport.fringing(200.0, transport.COX['SiO2_300nm']))))
     cmd('NitSiO', _fmt_sci(transport.N_IT_SIO2))
     cmd('NitHfO', _fmt_sci(transport.N_IT_HFO2))
     cmd('Udefect', '%.3f' % mats['MoS2'].Udef)

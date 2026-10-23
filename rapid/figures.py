@@ -130,7 +130,7 @@ def fig_abstract(res):
 
     # ---------------- (a) device schematic -----------------------------
     ax = fig.add_subplot(gtop[0, 0])
-    anchors = device_fig.draw_device(ax, fs=6.3)
+    anchors = device_fig.draw_device(ax, fs=6.3, terminals=False)
     device_fig.draw_cross_section(ax, rect=(0.012, 0.012, 0.404, 0.372),
                                   fs=5.2)
     device_fig.annotate(ax, anchors, fs=6.3)
@@ -159,7 +159,7 @@ def fig_abstract(res):
                 fontsize=FS_ANN, color=CAT[1],
                 arrowprops=dict(arrowstyle='-', lw=0.5, color=CAT[1],
                                 shrinkA=2, shrinkB=3))
-    ax.annotate('2LA(M) does not', xy=(455.2, 1.88), xytext=(0.985, 0.66),
+    ax.annotate('2LA(M) does not shift', xy=(455.2, 1.88), xytext=(0.985, 0.66),
                 textcoords='axes fraction', ha='right', va='center',
                 fontsize=FS_ANN, color=CAT[1],
                 arrowprops=dict(arrowstyle='-', lw=0.5, color=CAT[1],
@@ -196,14 +196,14 @@ def fig_abstract(res):
     ax.set_ylabel(r'Electron density ($10^{12}$ cm$^{-2}$)')
     ax.set_xlim(-0.09, 0.30)
     ax.set_ylim(-1.90, 5.40)
-    ax.legend(loc='lower left', bbox_to_anchor=(0.01, -0.01),
+    ax.legend(loc='upper right', bbox_to_anchor=(0.99, 0.99),
               handlelength=1.0, labelspacing=0.20)
     _panel(ax, '(c)', dx=-0.150)
 
     # ---------------- (d) the resulting width limit --------------------
     ax = fig.add_subplot(gbot[0, 1])
-    place = {'HfO2_EOT1p5': ((0.42, 0.235), 'left', 'center'),
-             'SiO2_90nm': ((0.985, 0.315), 'right', 'center')}
+    place = {'HfO2_EOT1p5': ((0.03, 0.80), 'left', 'center'),
+             'SiO2_90nm': ((0.955, 0.30), 'right', 'center')}
     for tag, col, lab in (('HfO2_EOT1p5', CAT[2], r'thin high-$\kappa$ gate'),
                           ('SiO2_90nm', CAT[1], r'90 nm SiO$_2$ gate')):
         Wl = np.array(rb['cox'][tag]['W'])
@@ -270,9 +270,10 @@ def fig1(res):
     ax.set_xticks(x)
     ax.set_xticklabels(xt, rotation=30, ha='right')
     ax.set_ylabel(r'Grüneisen parameter $\gamma$')
-    ax.set_ylim(0, 4.6)
-    ax.legend(h, l, loc='upper right', bbox_to_anchor=(0.99, 0.99),
-              handlelength=0.85, handletextpad=0.35, labelspacing=0.18)
+    ax.set_ylim(0, 5.3)
+    ax.legend(h, l, loc='upper left', bbox_to_anchor=(0.0, 1.0), ncol=2,
+              handlelength=0.85, handletextpad=0.35, labelspacing=0.18,
+              columnspacing=0.8)
     _panel(ax, '(a)')
 
     # ---- (b) gap deformation potential vs exciton gauge factor ---------
@@ -359,8 +360,11 @@ def fig2(res):
     ax.set_ylabel('recovered edge state')
     ax.set_xlim(0.3, 3.3)
     ax.set_ylim(-0.8, 5.2)
-    ax.legend(loc='upper left', bbox_to_anchor=(0.02, 0.99),
-              handlelength=0.9, labelspacing=0.18, fontsize=5.9)
+    leg = ax.legend(loc='upper left', bbox_to_anchor=(0.02, 0.99),
+                    handlelength=0.9, labelspacing=0.18, fontsize=5.9,
+                    frameon=True, facecolor='white', edgecolor='none',
+                    framealpha=1.0)
+    leg.set_zorder(10)
     # dotted lines: the value measured for WSe2 and the value computed for
     # MoS2; both are named in the caption rather than in the panel, which is
     # too narrow to carry two labels without a collision
@@ -379,6 +383,20 @@ def fig2(res):
         ax.loglog(W, transport.threshold_shift(rb['sigma_line_cm'], W, cox),
                   color=CAT[i], lw=1.3, label=names[tag])
     ax.axhline(0.15, color=MUTED, ls=':', lw=0.9)
+    # the threshold shifts measured on XeF2-etched ribbons from the same group, on the
+    # high-kappa stack (Pena et al. 2026, Extended Data Fig. 4, digitised;
+    # offsets from the 850 nm devices at equal channel length), and Eq. (1)
+    # with the line charge fitted to them
+    el = res['electrical']
+    ihf = list(transport.COX).index('HfO2_EOT1p5')
+    ax.loglog(W, transport.threshold_shift(el['pena']['1.5']['sigma'], W,
+                                           transport.COX['HfO2_EOT1p5'],
+                                           parallel_plate=True),
+              color=CAT[ihf], lw=1.0, ls='--')
+    ax.errorbar([75.0, 25.0], [el['d75'], el['d25']],
+                yerr=[el['d75_se'], el['d25_se']], fmt='D', ms=3.6,
+                color=CAT[ihf], mfc='white', mew=1.0, elinewidth=0.8,
+                capsize=1.8, zorder=7)
     dvt200 = transport.threshold_shift(rb['sigma_line_cm'], 200.0,
                                        transport.COX['SiO2_300nm'])
     ax.plot([200], [dvt200], '*', ms=8.5, color=INK, mfc='white', mew=0.9,
@@ -438,17 +456,17 @@ def fig2(res):
               label='point-defect ceiling')
     ax.loglog(nd, mu, 'o', ms=4.6, color=INK, mfc='white', mew=1.0, zorder=6,
               ls='', label='measured films')
-    lbl = {0: ('ALD as-grown', (7, -6), 'left'),
-           1: ('ALD annealed', (7, 6), 'left'),
-           2: ('sputtered', (7, -2), 'left')}
+    lbl = {0: ('ALD as-grown', (7, -3), 'left'),
+           1: ('ALD annealed', (7, 1), 'left'),
+           2: ('sputtered', (7, 0), 'left')}
     for i, (xx, yy) in enumerate(zip(nd, mu)):
         if i in lbl and np.isfinite(yy):
             t, o, hh = lbl[i]
             ax.annotate(t, (xx, yy), textcoords='offset points', xytext=o,
                         fontsize=5.9, color=INK2, ha=hh, va='center')
-    ax.annotate('', xy=(nd[1] * 1.9, mu[1] * 1.6), xytext=(nd[1] * 1.9, 24.0),
+    ax.annotate('', xy=(nd[1] * 3.2, mu[1] * 2.6), xytext=(nd[1] * 3.2, 14.0),
                 arrowprops=dict(arrowstyle='<->', lw=0.7, color=MUTED))
-    _note(ax, 0.020, 0.60, 'grain\nboundary\ndeficit')
+    _note(ax, 0.04, 0.53, 'grain-\nboundary\ndeficit')
     ax.set_xlabel(r'inverted $n_{\rm d}$ (cm$^{-2}$)')
     ax.set_ylabel(r'$\mu$ (cm$^2$V$^{-1}$s$^{-1}$)')
     ax.set_xlim(8e11, 8e14)
@@ -479,13 +497,13 @@ def fig3(res):
         ax.loglog(halos, vals, color=CAT[i], lw=1.3, label=names[tag])
     # the two patterning processes are marked with short tags and spelled out
     # in the caption, which keeps the labels clear of the curves
-    for xh, txt, off, hh in ((D.HALO['GENTLE_nm'], r'XeF$_2$', (5.5, -7.0), 'left'),
-                             (D.HALO['HIM_nm'], 'HIM', (-2.5, -15.0), 'right')):
+    for xh, txt, off, hh, vv in ((D.HALO['GENTLE_nm'], r'XeF$_2$', (5.5, -7.0), 'left', 'top'),
+                                 (D.HALO['HIM_nm'], 'He ion', (-3.0, 15.0), 'right', 'bottom')):
         yv = rb['halo']['GENTLE' if xh < 50 else 'HIM']['Wc']
         ax.plot(xh, yv, 'o', ms=4.6, color=INK, mfc='white', mew=1.0,
                 zorder=6)
         ax.annotate(txt, xy=(xh, yv), xytext=off,
-                    textcoords='offset points', ha=hh, va='top',
+                    textcoords='offset points', ha=hh, va=vv,
                     fontsize=FS_ANN, color=INK)
     ax.set_xlabel('Damage halo width (nm)')
     ax.set_ylabel(r'Critical width $W_{\rm c}$ (nm)')
@@ -512,7 +530,7 @@ def fig3(res):
     # growth-technology names into the right third, so the two label sets
     # cannot collide with each other or with the colour bar.
     x_lab = Wg[0] * (Wg[-1] / Wg[0]) ** 0.17
-    ylo = ndg[0] * (ndg[-1] / ndg[0]) ** 0.06
+    ylo = ndg[0] * (ndg[-1] / ndg[0]) ** 0.20
     yhi = ndg[0] * (ndg[-1] / ndg[0]) ** 0.94
     man = []
     for segs in cs.allsegs:
@@ -612,9 +630,9 @@ def fig3(res):
 def fig_toc(res):
     """ACS table-of-contents graphic, 3.25 by 1.75 inches at 600 dpi.
 
-    One reading in one glance: the probed device on the left, and on the
-    right the pair of phonons turning into the edge charge density.  Only the
-    headline number appears, set from the same results file as the article.
+    The probed device on the left; on the right the two readings of the edge,
+    the Raman pair and the transistor thresholds, with their headline numbers
+    set from the same results file as the article.
     """
     kv = res['krayev']
     n = kv['edge']['n_1e13'] * 10.0            # 1e12 cm^-2
@@ -624,19 +642,23 @@ def fig_toc(res):
                            scatter_arrow=False)
     tx = fig.add_axes([0.60, 0.00, 0.40, 1.00])
     tx.set_axis_off()
-    tx.text(0.5, 0.87, "$A_1'$ + 2LA(M)", fontsize=9.5, color=INK,
+    ex = res.get('exact', {}).get('fit', {})
+    sig = ex.get('sigma_cm', float('nan')) / 1e7
+    ell = ex.get('ell_nm', float('nan'))
+    tx.text(0.5, 0.91, "Raman: $A_1'$ + 2LA(M)", fontsize=7.0, color=INK,
             ha='center', va='center')
-    tx.annotate('', xy=(0.5, 0.56), xytext=(0.5, 0.76),
-                arrowprops=dict(arrowstyle='-|>', lw=1.2, color=INK,
-                                mutation_scale=12))
-    tx.text(0.5, 0.42,
-            r'$\sigma_{\rm e} = %.1f \times 10^{12}$' % n + '\n'
-            r'cm$^{-2}$',
-            fontsize=10.5, color='#D55E00', ha='center', va='center',
-            linespacing=1.3, fontweight='bold')
-    tx.text(0.5, 0.10, 'charge and strain, separated\nat an etched edge',
-            fontsize=6.4, color=INK2, ha='center', va='center',
-            linespacing=1.25)
+    tx.text(0.5, 0.78, r'edge excess $%.1f\times10^{12}$ cm$^{-2}$' % n,
+            fontsize=6.2, color='#D55E00', ha='center', va='center')
+    tx.text(0.5, 0.68, 'no strain', fontsize=6.2, color='#D55E00',
+            ha='center', va='center')
+    tx.text(0.5, 0.555, '+', fontsize=9.0, color=INK, ha='center',
+            va='center')
+    tx.text(0.5, 0.44, 'transistor thresholds', fontsize=7.0, color=INK,
+            ha='center', va='center')
+    tx.text(0.5, 0.31, r'fixed charge $%.1f\times10^{7}$ cm$^{-1}$' % sig,
+            fontsize=6.2, color='#0072B2', ha='center', va='center')
+    tx.text(0.5, 0.21, r'per edge, depth %.0f nm' % ell,
+            fontsize=6.2, color='#0072B2', ha='center', va='center')
     fig.savefig(os.path.join(FIGS, 'toc_graphic.pdf'))
     fig.savefig(os.path.join(FIGS, 'toc_graphic.png'), dpi=600)
     plt.close(fig)

@@ -38,11 +38,22 @@ PROVENANCE = {
     'VSAT': 'lit: Smithe et al., Nano Lett. 18, 4516 (2018), MoS2 value '
             'used for all four',
     'P_SPEC': 'assumed: fully diffuse etched edge, p = 0',
-    'halo_contrast': 'assumed: 20x defect density inside the damage halo',
+    'halo_contrast': 'assumed: 20x defect density inside the damage halo;\n'
+                     'scanned from 5x to 100x',
     'Udef': 'cal: fixed once on Dossena et al., npj 2D Mater. Appl. 9, 67\n'
             '(2025), WS2 on disordered Al2O3, used as a short-range\n'
             'scattering proxy',
     'N_IT': 'cal: fixed once on measured monolayer field-effect mobility',
+    'edge shifts': 'lit: Krayev et al., Appl. Phys. Lett. 128, 203102 (2026),\n'
+                   'edges of one patterned, annealed ribbon on gold\n(etch assumed to be XeF2)',
+    'lambda_2LA': 'assumed: zero for MoS2, where it has not been measured;\n'
+                  'the value that would reverse the result is computed',
+    'w_e': 'assumed: 10 nm, the resolution of the measurement; scanned\n'
+           'from 5 to 20 nm',
+    'halo (XeF2 etch)': 'assumed: 5 nm, no measured value; scanned from\n'
+                        '1 to 200 nm',
+    'halo (He-ion beam)': 'lit: Liu et al., Adv. Funct. Mater. 36, e14880\n'
+                          '(2026), damage up to 150 nm',
 }
 
 # --------------------------------------------------------------------------
@@ -79,17 +90,17 @@ MU_PHONON = {'MoS2': 320.0, 'WS2': 690.0, 'MoSe2': 180.0, 'WSe2': 250.0}
 # --------------------------------------------------------------------------
 # Raman-active zone-centre modes (cm^-1), 300 K, monolayer, on SiO2
 #   MoS2  : Mignuzzi PRB 91, 195411 (2015); Michail APL 108, 173102 (2016)
-#   WS2   : Berkdemir Sci. Rep. 3, 1755 (2013), 356 and 418 cm^-1 at 514.5 nm
-#   WSe2  : Terrones Sci. Rep. 4, 4215 (2014), the two modes near degenerate
-#           at about 250 cm^-1; that work is otherwise a DFPT study and its
-#           only monolayer measurement is this one
-#   MoSe2 : Tonndorf Opt. Express 21, 4908 (2013)
+#   WS2   : Berkdemir Sci. Rep. 3, 1755 (2013), monolayer at 488 nm excitation
+#   WSe2  : Terrones Sci. Rep. 4, 4215 (2014), Raman measurement combined with
+#           density functional perturbation theory; the two modes are near
+#           degenerate at about 250 cm^-1 in the monolayer
+#   MoSe2 : Tonndorf Opt. Express 21, 4908 (2013), monolayer A1' at 240.5 cm^-1
 # LA(M) is the disorder-activated zone-edge acoustic phonon.
 # --------------------------------------------------------------------------
 PHONON = {
     'MoS2':  dict(wE=385.0, wA=403.0, wLA=227.6),
     'WS2':   dict(wE=356.0, wA=417.5, wLA=176.0),
-    'MoSe2': dict(wE=287.0, wA=241.0, wLA=None),   # LA(M) from DFT scaling
+    'MoSe2': dict(wE=287.0, wA=240.5, wLA=None),   # LA(M) from DFT scaling
     'WSe2':  dict(wE=249.4, wA=250.2, wLA=130.0),
 }
 
