@@ -23,7 +23,9 @@ PROVENANCE = {
     'PHONON': 'lit: Mignuzzi 2015 and Michail 2016 (MoS2), Berkdemir 2013\n'
               '(WS2), Terrones 2014 (WSe2), Tonndorf, Opt. Express 21, 4908\n'
               '(2013) (MoSe2)',
-    'EXCITON': 'lit: Henriquez-Guerra et al., ACS AMI 15, 57369 (2023)',
+    'EXCITON': 'lit: gauge factors, Henriquez-Guerra et al., ACS AMI 15,\n'
+               '57369 (2023); A-exciton energies, Tonndorf 2013 (MoSe2, WSe2)\n'
+               'and typical values (MoS2, WS2); linewidths assumed, 35-45 meV',
     'DOPING_MoS2': 'lit: Chakraborty et al., Phys. Rev. B 85, 161403 (2012)',
     'RAMAN_CAL': 'lit: Mignuzzi et al., Phys. Rev. B 91, 195411 (2015)',
     'gamma_E, gamma_A, gamma_LA, C2D, dgap_deps': 'dft: this work',
@@ -45,7 +47,7 @@ PROVENANCE = {
             'scattering proxy',
     'N_IT': 'cal: fixed once on measured monolayer field-effect mobility',
     'edge shifts': 'lit: Krayev et al., Appl. Phys. Lett. 128, 203102 (2026),\n'
-                   'edges of one patterned, annealed ribbon on gold\n(etch assumed to be XeF2)',
+                   'edges of one XeF2-etched, annealed ribbon on gold, 785 nm',
     'lambda_2LA': 'assumed: zero for MoS2, where it has not been measured;\n'
                   'the value that would reverse the result is computed',
     'w_e': 'assumed: 10 nm, the resolution of the measurement; scanned\n'
@@ -105,10 +107,13 @@ PHONON = {
 }
 
 # --------------------------------------------------------------------------
-# A-exciton energy (eV) on SiO2 at 300 K and its biaxial strain gauge factor
-# (meV per % strain, negative = redshift under tension).
+# A-exciton energy (eV) at 300 K, its biaxial strain gauge factor (meV per %
+# strain, negative = redshift under tension) and a room-temperature linewidth.
 # Gauge factors: Henriquez-Guerra et al., ACS Appl. Mater. Interfaces 15,
-# 57369 (2023) [doi:10.1021/acsami.3c13281]
+# 57369 (2023) [doi:10.1021/acsami.3c13281], Table 1, neutral A exciton.
+# Energies: Tonndorf et al. 2013 PL (MoSe2 1.57 eV, WSe2 1.65 eV); MoS2 and
+# WS2 are typical room-temperature values.  Gam0 is an assumed typical
+# linewidth, used only to spread the detuning in the C_A transfer.
 # --------------------------------------------------------------------------
 EXCITON = {
     'MoS2':  dict(EA=1.880, gauge=-100.0, Gam0=0.045),

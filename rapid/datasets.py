@@ -28,19 +28,26 @@ NATTOO = [
 
 # ---------------------------------------------------------------------------
 # Krayev et al., Appl. Phys. Lett. 128, 203102 (2026)  doi:10.1063/5.0321304
-# Gap-mode tip-enhanced Raman maps of lithographically patterned monolayer
-# MoS2 nanoribbons on a gold substrate, after a vacuum anneal that removes
-# resist residues; spatial resolution down to about 10 nm; ribbons down to
-# 50 nm wide (all as stated in the abstract).  The authors include T. Pena
-# and E. Pop, authors of the transistor study below, whose ribbons are
-# defined by electron-beam lithography and a XeF2 etch; that the Raman
-# ribbons share that etch is an assumption, flagged as such in the article.
-# The four shifts and the 60 nm width are as read from that work for the
-# original submission; the abstract confirms the 0.5 cm^-1 A1' redshift at the
-# edges and 50 to 100 nm inhomogeneities with a redshifted 2LA(M).
+# (author-posted full text: poplab.stanford.edu/pdfs/Krayev-TMDnanoribbonTERS-apl26.pdf)
+# Monolayer MoS2 grown by solid-source CVD on 300 nm SiO2, patterned by
+# electron-beam lithography and dry-etched with XeF2, template-stripped onto
+# gold (100 nm Au evaporated, flipped, stripped) and imaged by gap-mode
+# tip-enhanced Raman spectroscopy at 785 nm (below the A exciton), spatial
+# resolution about 10 nm.  The ribbons analysed here are from the second
+# batch, which had an additional overnight vacuum anneal (250 C) that removed
+# resist residues.  Edge values (Fig. 4 of that work, averages of about ten
+# pixels): A1' redshift of about 0.5 cm^-1, 2LA(M) unchanged.  Interior
+# inhomogeneity (Fig. 3, spot 2 against spot 1): redshifts of 2.8 cm^-1 for
+# 2LA(M) and 0.6 cm^-1 for A1'.  The authors read the edge shift as
+# consistent with negative fixed charge, likely from fabrication and/or
+# atmospheric exposure.  The 60 nm width is that of the first-batch ribbon
+# (Fig. 2); the width of the second-batch ribbon is not stated.  All seven
+# authors are also authors of the transistor study below (same lithography
+# and XeF2 etch).
 # ---------------------------------------------------------------------------
 KRAYEV = dict(
-    ribbon_width_nm=60.0,   # ribbon width, for reference only
+    ribbon_width_nm=60.0,   # first-batch ribbon (Fig. 2), reference only
+    laser_nm=785.0,
     resolution_nm=10.0,
     n_ribbons=1, n_edges=2,
     edge_dwA=-0.5,          # A1' shift at the ribbon edge, cm^-1
@@ -173,17 +180,21 @@ MICHAIL_BIAX = {
                  gE=0.56, gE_e=0.02, gA=0.31, gA_e=0.02,
                  dw2LA=np.nan, dw2LA_e=np.nan,
                  gLA=np.nan, gLA_e=np.nan),
+    # WSe2: means over the five devices WT1-WT5 of Table 2 (515 nm), the same
+    # averaging the work applies to MoS2 (Table 1) and to the WSe2 A1' value
+    # it quotes, -1.3(1) cm^-1/%, which is used as stated; other errors are
+    # standard errors of the mean.
     'WSe2': dict(dwE=np.nan, dwE_e=np.nan, dwA=-1.3, dwA_e=0.1,
-                 gE=np.nan, gE_e=np.nan, gA=0.26, gA_e=0.02,
-                 dw2LA=-2.3, dw2LA_e=0.1,
-                 gLA=0.45, gLA_e=0.02),
+                 gE=np.nan, gE_e=np.nan, gA=0.27, gA_e=0.01,
+                 dw2LA=-2.37, dw2LA_e=0.15,
+                 gLA=0.46, gLA_e=0.03),
 }
 # Michail et al., J. Phys. Chem. C 127, 3506 (2023) doi:10.1021/acs.jpcc.2c06933
 # report the first controlled pure biaxial strain measurement on monolayer
-# WS2 and extract the Grueneisen parameter of the in-plane E' mode.  The
-# numerical value is behind a paywall and is therefore cited for the
-# existence of the measurement only, and is not used in any calculation.
-# No biaxial-strain measurement of monolayer MoSe2 has been published.
+# WS2 and extract the Grueneisen parameter of the in-plane E' mode (equal to
+# that of bulk WS2, per the abstract).  It is cited for the existence of the
+# measurement only and is not used in any calculation.  We know of no
+# biaxial-strain measurement of monolayer MoSe2.
 
 # ---------------------------------------------------------------------------
 # Chakraborty et al., Phys. Rev. B 85, 161403(R) (2012)
@@ -219,11 +230,13 @@ HALO = dict(HIM_nm=150.0, GENTLE_nm=5.0)
 # the comparison in the article is an onset and order-of-magnitude check
 # rather than a quantitative one. Channel length 1 um, 300 nm SiO2 back gate.
 # The paper gives no per-width threshold voltage, only the three statements
-# below, so nothing more can be read out of it.  The authors attribute the
+# below, so nothing more can be read out of it.  Widths trimmed by BCl3/Ar
+# plasma dry etching.  The authors attribute the
 # shift to edge depletion by electric fields or adsorbed molecules; the 50 V
 # total refers to one 6 nm thick set of ribbons.
 # ---------------------------------------------------------------------------
 LIU2012 = dict(
+    etch='BCl3/Ar plasma',
     widths_nm=(2000.0, 1000.0, 500.0, 200.0, 100.0, 80.0, 60.0),
     thickness_nm=(6.0, 6.0, 11.0),
     Lch_nm=1000.0, tox_nm=300.0,
@@ -299,7 +312,7 @@ LAN2026 = dict(etch='Cl2/O2 ICP-RIE', t_HfO2_nm=3.0, kappa=10.0,
 
 # Kotekar-Patil et al., Appl. Phys. Lett. 114, 013508 (2019),
 # doi:10.1063/1.5079860.  Exfoliated monolayer MoS2, SF6 plasma etch, 300 nm
-# SiO2 back gate, W = 50 nm, L = 500 nm.  Unetched devices: V_th from -30 to
+# SiO2 back gate, W = 50 nm, L = 500 nm.  Same flakes before the etch: V_th -30 to
 # -10 V; the three ribbons: 20, 31 and 33.4 V.  W is six times smaller than
 # the oxide thickness, so fringing fields make the parallel-plate Eq. (1)
 # inapplicable; the sign is used, not the size.

@@ -313,7 +313,7 @@ def fig1(res):
     ax.set_ylim(0, max(vals) * 1.72)
     ax.legend(loc='upper left', bbox_to_anchor=(0.03, 0.99),
               handletextpad=0.35)
-    _note(ax, 0.05, 0.82, 'computed lever arms\ndiffer by %.1f times'
+    _note(ax, 0.05, 0.82, 'computed strain\nsensitivities differ\nby %.1f times'
           % (vals[1] / vals[0]))
     _panel(ax, '(c)')
 
