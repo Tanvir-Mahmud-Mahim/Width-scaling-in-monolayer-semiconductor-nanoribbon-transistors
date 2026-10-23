@@ -123,8 +123,18 @@ def export_benchmarks(out_dir):
            ' '.join('%g' % v for v in D.KOTEKAR2019['Vth_ribbon_V'])],
           ['Kotekar-Patil et al., Appl. Phys. Lett. 114, 013508 (2019)',
            'unetched', '300 nm SiO2', 'V_th range of unetched devices (V)',
-           '%g to %g' % D.KOTEKAR2019['Vth_unetched_V']]],
-         'Threshold-voltage values quoted from the text of the cited works.')
+           '%g to %g' % D.KOTEKAR2019['Vth_unetched_V']],
+          ['Liu, Gu and Ye, IEEE Electron Device Lett. 33, 1273 (2012)', '',
+           '300 nm SiO2, 6-11 nm thick (multilayer) bodies',
+           'width below which V_th first shifts positive (nm)',
+           '%g' % D.LIU2012['W_onset_nm']],
+          ['Liu, Gu and Ye, IEEE Electron Device Lett. 33, 1273 (2012)', '',
+           '300 nm SiO2, 6 nm thick body',
+           'total V_th shift, wide ribbons -> %g nm (V)'
+           % D.LIU2012['narrowest_nm'],
+           '%g' % D.LIU2012['dVT_total_V']]],
+         'Threshold-voltage values quoted from the text of the cited works; '
+         'an empty etch field means the etch is not used in the article.')
 
     dump('nattoo2025_disorder_activated_raman_and_mobility.csv',
          ['film', 'R_shoulder', 'R_shoulder_err', 'R_LA', 'R_LA_err',
