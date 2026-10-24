@@ -182,7 +182,7 @@ def export_benchmarks(out_dir):
 
     dump('halo_widths.csv', ['process', 'halo_width_nm'],
          [['resist-masked XeF2 etch (modelling choice, not measured)', D.HALO['GENTLE_nm']],
-          ['XeF2-assisted helium-ion-beam etching (measured)', D.HALO['HIM_nm']]],
+          ['XeF2-assisted helium-ion-beam etching (measured upper extent: damage up to 150 nm beyond the patterned edge)', D.HALO['HIM_nm']]],
          'Process-induced damage halo widths. Only the helium-ion value is '
          'measured; the gentle-etch value is a modelling choice that is '
          'scanned over two orders of magnitude in the article.')
