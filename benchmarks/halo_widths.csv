@@ -1,4 +1,4 @@
 # Process-induced damage halo widths. Only the helium-ion value is measured; the gentle-etch value is a modelling choice that is scanned over two orders of magnitude in the article.
 process,halo_width_nm
 "resist-masked XeF2 etch (modelling choice, not measured)",5.0
-XeF2-assisted helium-ion-beam etching (measured),150.0
+XeF2-assisted helium-ion-beam etching (measured upper extent: damage up to 150 nm beyond the patterned edge),150.0
