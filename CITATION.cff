@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this dataset, please cite it as below."
-title: "Data, benchmarks and code for: Two Raman phonons and transistor thresholds quantify the fixed edge charge left by patterning monolayer transition metal dichalcogenides"
+title: "Data, benchmarks and code for: Two Raman peaks and transistor thresholds quantify the fixed negative charge at etched edges of monolayer MoS2"
 type: dataset
 authors:
   - family-names: Mahim

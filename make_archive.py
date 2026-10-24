@@ -35,9 +35,8 @@ ZENODO_CONCEPT_DOI = '10.5281/zenodo.21670315'
 ZENODO_DOI = ZENODO_CONCEPT_DOI
 GITHUB_URL = ('https://github.com/Tanvir-Mahmud-Mahim/'
               'Width-scaling-in-monolayer-semiconductor-nanoribbon-transistors')
-ARTICLE = ('Two Raman phonons and transistor thresholds quantify the fixed '
-           'edge charge left by patterning monolayer transition metal '
-           'dichalcogenides')
+ARTICLE = ('Two Raman peaks and transistor thresholds quantify the fixed '
+           'negative charge at etched edges of monolayer MoS2')
 TITLE = 'Data, benchmarks and code for: ' + ARTICLE
 AUTHORS = [
     dict(name='Mahim, Tanvir M.',

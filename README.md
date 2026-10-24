@@ -2,7 +2,7 @@
 
 Complete code and data for
 
-> **Two Raman Phonons and Transistor Thresholds Quantify the Fixed Edge Charge Left by Patterning Monolayer Transition Metal Dichalcogenides**
+> **Two Raman Peaks and Transistor Thresholds Quantify the Fixed Negative Charge at Etched Edges of Monolayer MoS₂**
 > Tanvir M. Mahim and M. Mosaddequr Rahman, Department of Electrical and Electronic Engineering, BRAC University, Dhaka 1212, Bangladesh.
 
 Data and benchmarks of record: [10.5281/zenodo.21670315](https://doi.org/10.5281/zenodo.21670315) (concept DOI, resolves to the latest version)
@@ -215,7 +215,7 @@ to the sign-reversal threshold, checks that the strain read from the overtone
 at the interior spot predicts the A₁′ shift there, and recomputes the critical
 width for edge charge from the opposite sign to three times the extracted
 value, for halos of 1 to 20 nm and for a damage contrast inside the halo of 5
-to 100 times. Figure S6 of the supplement is drawn from these results.
+to 100 times. Figure S8 of the Supporting Information is drawn from these results.
 
 **Uncertainty.** Every stated input uncertainty of the edge inversion,
 both Grüneisen parameters over their full computed-to-measured brackets,
